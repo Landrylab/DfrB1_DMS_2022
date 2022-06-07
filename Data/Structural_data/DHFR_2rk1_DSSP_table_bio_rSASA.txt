@@ -1,0 +1,79 @@
+Position	Secondary_structure	Solvent_accessibility	rSASA
+1	Missing	Missing	0.0
+2	Missing	Missing	0.0
+3	Missing	Missing	0.0
+4	Missing	Missing	0.0
+5	Missing	Missing	0.0
+6	Missing	Missing	0.0
+7	Missing	Missing	0.0
+8	Missing	Missing	0.0
+9	Missing	Missing	0.0
+10	Missing	Missing	0.0
+11	Missing	Missing	0.0
+12	Missing	Missing	0.0
+13	Missing	Missing	0.0
+14	Missing	Missing	0.0
+15	Missing	Missing	0.0
+16	Missing	Missing	0.0
+17	Missing	Missing	0.0
+18	Missing	Missing	0.0
+19	Missing	Missing	0.0
+20	Missing	Missing	0.0
+21	Missing	Missing	0.0
+22	none	121	1.07
+23	none	83	0.57
+24	none	18	0.08
+25	none	34	0.4
+26	H-bonded turn	108	0.53
+27	H-bonded turn	37	0.44
+28	none	47	0.31
+29	Beta ladder	92	0.38
+30	Beta ladder	0	0.0
+31	Beta ladder	108	0.45
+32	Beta ladder	38	0.18
+33	Bend	107	0.51
+34	Bend	88	0.72
+35	Bend	55	0.65
+36	Bend	22	0.19
+37	none	31	0.27
+38	none	3	0.01
+39	Beta ladder	50	0.26
+40	Beta ladder	0	0.0
+41	Beta ladder	107	0.57
+42	Beta ladder	4	0.02
+43	Beta ladder	9	0.06
+44	Beta ladder	3	0.04
+45	Beta ladder	102	0.39
+46	Beta ladder	11	0.05
+47	none	46	0.33
+48	none	7	0.05
+49	Bend	165	1.04
+50	Bend	90	0.5
+51	none	15	0.1
+52	Bend	92	0.64
+53	Bend	52	0.28
+54	Beta ladder	0	0.0
+55	Beta ladder	5	0.02
+56	Beta ladder	2	0.02
+57	Beta ladder	0	0.0
+58	Beta ladder	39	0.21
+59	Beta ladder	3	0.02
+60	Bend	86	0.47
+61	Bend	46	0.41
+62	Bend	10	0.05
+63	H-bonded turn	86	0.6
+64	H-bonded turn	11	0.13
+65	none	4	0.03
+66	Beta ladder	18	0.11
+67	Beta ladder	37	0.2
+68	Beta ladder	36	0.2
+69	Beta ladder	24	0.1
+70	Beta ladder	52	0.36
+71	3/10 helix	33	0.21
+72	3/10 helix	72	0.64
+73	3/10 helix	28	0.25
+74	Beta ladder	5	0.03
+75	Beta ladder	65	0.36
+76	Beta ladder	154	0.64
+77	none	35	0.19
+78	none	183	1.16

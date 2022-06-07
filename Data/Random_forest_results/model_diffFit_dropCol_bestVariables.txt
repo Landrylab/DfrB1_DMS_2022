@@ -1,0 +1,5 @@
+Feature	Importance
+random_var	-0.0173481920557369
+Mean_ddG_stab_HET	0.061803254126560736
+hydrophilicity_hopp	0.0824375923337336
+rSASA	0.2890052268261155
