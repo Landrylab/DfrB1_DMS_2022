@@ -36,16 +36,18 @@ cat > mut_$3_${prot}.sbatch << EOF
 #SBATCH --mem=$5
 
 unset $PYTHONPATH
-source /home/afcis2/Mutagenesis_Manitou/Tools/mutatex-env/bin/activate
+
+# Load virtual environment if necessary
+source /path/to/virtual/env
 
 mutatex ${prot}.pdb \
         -p $4 \
         -m mutation_list.txt \
         -x $FOLDX_BINARY \
         -f suite5 \
-        -R /home/afcis2/Mutagenesis_Manitou/Tools/mutatex/templates/foldxsuite4/repair_runfile_template.txt \
-        -M /home/afcis2/Mutagenesis_Manitou/Tools/mutatex/templates/foldxsuite4/mutate_runfile_template.txt \
-        -I /home/afcis2/Mutagenesis_Manitou/Tools/mutatex/templates/foldxsuite4/interface_runfile_template.txt \
+        -R /path/to/repair_runfile_template.txt \
+        -M /path/to/mutate_runfile_template.txt \
+        -I /path/to/interface_runfile_template.txt \
         -B $mut_arg
 
 

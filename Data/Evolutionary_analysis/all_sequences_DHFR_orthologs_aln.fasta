@@ -1,0 +1,328 @@
+>tr|A0A1Z3MKI0|A0A1Z3MKI0_ALCFA Dihydrofolate reductase OS=Alcaligenes faecalis OX=511 PE=4 SV=1
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|H2B2N5|H2B2N5_9BACT Dihydrofolate reductase OS=bacterium AK-MB79 OX=1135898 GN=dfrIIe PE=4 SV=1
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A455TWG8|A0A455TWG8_PSESP Dihydrofolate reductase OS=Pseudomonas sp. OX=306 GN=dfrB PE=4 SV=1
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A3R8UBV0|A0A3R8UBV0_9PSED Dihydrofolate reductase OS=Pseudomonas sp. s199 OX=2479850 GN=EGJ29_20010 PE=4 SV=1
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|Q58IZ0|Q58IZ0_PSEAI Dihydrofolate reductase OS=Pseudomonas aeruginosa OX=287 GN=dhfr PE=4 SV=1
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A0U2TX79|A0A0U2TX79_PSEST Dihydrofolate reductase OS=Pseudomonas stutzeri OX=316 PE=4 SV=1
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|D2Y395|D2Y395_AERHY Dihydrofolate reductase OS=Aeromonas hydrophila OX=644 GN=dfrB7 PE=4 SV=1
+-------------------MDQGS--------------NEVGNPVA-------GQFSFPS
+NAAFSMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERINGVQG---------
+>tr|A0A1B4XBE6|A0A1B4XBE6_9ENTR Dihydrofolate reductase OS=Enterobacter hormaechei subsp. steigerwaltii OX=299766 GN=dfrB1 PE=4 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|B7VES0|B7VES0_AERSO Dihydrofolate reductase OS=Aeromonas sobria OX=646 GN=dfrB1 PE=4 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>sp|P00383|DYR21_ECOLX Dihydrofolate reductase type 2 OS=Escherichia coli OX=562 PE=1 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|H6UQF7|H6UQF7_KLEOX Dihydrofolate reductase OS=Klebsiella oxytoca OX=571 GN=dfrB1 PE=4 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|F4ZVS7|F4ZVS7_PSEAI Dihydrofolate reductase OS=Pseudomonas aeruginosa OX=287 GN=dfrB1 PE=4 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A1J7YPJ4|A0A1J7YPJ4_CITFR Dihydrofolate reductase OS=Citrobacter freundii OX=546 GN=BED45_25660 PE=4 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A2Z5U5A7|A0A2Z5U5A7_KLEPN Dihydrofolate reductase OS=Klebsiella pneumoniae OX=573 GN=dfrB1 PE=4 SV=1
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|Q8GL63|Q8GL63_9BACT Dihydrofolate reductase OS=uncultured bacterium OX=77133 GN=dfrII PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|Q4VCS1|Q4VCS1_KLEPN Dihydrofolate reductase OS=Klebsiella pneumoniae OX=573 GN=dfrII PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|Q4VDP1|Q4VDP1_ECOLX Dihydrofolate reductase OS=Escherichia coli OX=562 GN=dfrII PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|H9TTY0|H9TTY0_PSEAI Dihydrofolate reductase OS=Pseudomonas aeruginosa OX=287 GN=drfB1 PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|I7HJZ3|I7HJZ3_BORBO Dihydrofolate reductase OS=Bordetella bronchiseptica OX=518 GN=dfrB1 PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A0D4D993|A0A0D4D993_KLEOX Dihydrofolate reductase OS=Klebsiella oxytoca OX=571 GN=dfrII PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|Q1HVJ4|Q1HVJ4_SALIN Dihydrofolate reductase OS=Salmonella infantis OX=595 GN=dfrB6 PE=4 SV=1
+-------------------MDQGS--------------NEVINPVA-------GQFASPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYSTKLTPEGYAVESEAHPG---SVQIYP
+VAALERVN-------------
+>tr|E2DND5|E2DND5_9BACT Dihydrofolate reductase B6 OS=uncultured bacterium OX=77133 PE=4 SV=1
+-------------------MDQGS--------------NEVINPVA-------GQFASPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYSTKLTPEGYAVESEAHPG---SVQIYP
+VAALERVN-------------
+>tr|A0A2Z1CLP9|A0A2Z1CLP9_PSEPU Dihydrofolate reductase OS=Pseudomonas putida OX=303 GN=dfrB2c PE=4 SV=1
+-------------------MDQSS--------------NEVSTPVA-------GQFALPL
+RATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|A0A0N7AFD7|A0A0N7AFD7_9GAMM Dihydrofolate reductase OS=[Pseudomonas] geniculata OX=86188 GN=dfrB1b PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGIGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|A0A172MAS4|A0A172MAS4_9PSED Dihydrofolate reductase OS=Pseudomonas sp. HB157 OX=1844916 GN=dhfr2 PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGIGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|B5WYT8|B5WYT8_PSEAI Dihydrofolate reductase OS=Pseudomonas aeruginosa OX=287 GN=dhfr2 PE=4 SV=1
+MQRVVGPHRTPRSSQERSEMERSS--------------NEVSNPVA-------GNFVFPS
+NATFGIGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>tr|B7VEQ4|B7VEQ4_AERSO Dihydrofolate reductase OS=Aeromonas sobria OX=646 GN=dfrB3 PE=4 SV=1
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|C5MRP4|C5MRP4_KLEOX Dihydrofolate reductase OS=Klebsiella oxytoca OX=571 GN=dfrB3 PE=4 SV=1
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|Q71RY0|Q71RY0_AERSA Dihydrofolate reductase OS=Aeromonas salmonicida subsp. salmonicida OX=29491 GN=dfrIIc PE=4 SV=1
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>sp|P05794|DYR23_ECOLX Dihydrofolate reductase type 2 OS=Escherichia coli OX=562 PE=3 SV=1
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|A0A386JBE2|A0A386JBE2_SERMA Dihydrofolate reductase OS=Serratia marcescens OX=615 GN=dfrB3 PE=4 SV=1
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|A0A1S5SJK1|A0A1S5SJK1_ALCSP Dihydrofolate reductase OS=Alcaligenes sp. OX=512 GN=dfrB3 PE=4 SV=1
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|A0A0A0YXC7|A0A0A0YXC7_9BURK Dihydrofolate reductase OS=Acidovorax temperans OX=80878 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0A0YVK6|A0A0A0YVK6_9NEIS Dihydrofolate reductase OS=Vogesella fluminis OX=1069161 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|B7VER9|B7VER9_AERSO Dihydrofolate reductase OS=Aeromonas sobria OX=646 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0A0Z1T6|A0A0A0Z1T6_PSEPU Dihydrofolate reductase OS=Pseudomonas putida OX=303 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0A0YXA2|A0A0A0YXA2_COMTE Dihydrofolate reductase OS=Comamonas testosteroni OX=285 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|Q56B40|Q56B40_KLEPN Dihydrofolate reductase OS=Klebsiella pneumoniae OX=573 GN=dfr2d PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0B4VSZ1|A0A0B4VSZ1_AERCA Dihydrofolate reductase OS=Aeromonas caviae OX=648 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|Q8VNN1|Q8VNN1_ECOLX Dihydrofolate reductase OS=Escherichia coli OX=562 GN=dfr2d PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0A0Z1Q5|A0A0A0Z1Q5_DELAC Dihydrofolate reductase OS=Delftia acidovorans OX=80866 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|Q5XLS7|Q5XLS7_AERHY Dihydrofolate reductase OS=Aeromonas hydrophila OX=644 GN=dfr2d PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A3RKP2|A3RKP2_9GAMM Dihydrofolate reductase OS=Aeromonas encheleia OX=73010 GN=dfr2d PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0B4VT52|A0A0B4VT52_9GAMM Dihydrofolate reductase OS=Aeromonas veronii OX=654 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A2N2TNN4|A0A2N2TNN4_9PROT Dihydrofolate reductase OS=Betaproteobacteria bacterium HGW-Betaproteobacteria-16 OX=2013707 GN=CVU22_06675 PE=4 SV=1
+-------------------MDQSS--------------KEVGTPVV-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VNALERVA-------------
+>sp|P00384|DYR22_ECOLX Dihydrofolate reductase type 2 OS=Escherichia coli OX=562 PE=3 SV=1
+-------------------MGQSS--------------DEANAPVA-------GQFALPL
+SATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|Q79NS3|Q79NS3_9BACT Dihydrofolate reductase type II OS=uncultured bacterium OX=77133 GN=dfrB2 PE=4 SV=1
+-------------------MGQSS--------------DEANAPVA-------GQFALPL
+SATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|A0A0A0YWM8|A0A0A0YWM8_9GAMM Dihydrofolate reductase OS=Acinetobacter parvus OX=134533 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVT-------------
+>tr|F4ZVS8|F4ZVS8_PSEAI Dihydrofolate reductase OS=Pseudomonas aeruginosa OX=287 GN=dfrB4a PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFAWGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|A0A0A0YVN9|A0A0A0YVN9_9PSED Dihydrofolate reductase OS=Pseudomonas mosselii OX=78327 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDHVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>tr|Q53CM2|Q53CM2_PSEAI Dihydrofolate reductase OS=Pseudomonas aeruginosa OX=287 GN=dhfr PE=4 SV=1
+-------------------MGQSS--------------HEANAPVA-------GQFALPL
+SATFGFGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>tr|B0FMU1|B0FMU1_ECOLX Dihydrofolate reductase OS=Escherichia coli OX=562 GN=dfr2d PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPD---SVQIYP
+MTALERVA-------------
+>tr|A0A0A0Z1Q9|A0A0A0Z1Q9_9PSED Dihydrofolate reductase OS=Pseudomonas oryzihabitans OX=47885 GN=dfrB4 PE=4 SV=1
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTAPERVA-------------
+>tr|A0A2I5YL54|A0A2I5YL54_9BACT Dihydrofolate reductase (Fragment) OS=uncultured bacterium OX=77133 GN=drfb2 PE=4 SV=1
+-------------------MGQSS--------------DEANTPVA-------GQFALPL
+GATFGLGDRVRKKSGA-------AWQGQIVGWYRTKLTPEGYAVESESHPG---SVQIYP
+VAALERVAQQFAP--------
+>tr|R4UB13|R4UB13_ENTCL DfrB-like protein OS=Enterobacter cloacae OX=550 PE=4 SV=1
+-------------------MNQSS--------------NCISTPVV-------GQFALPF
+QPTFGLGDRVRKKSGA-------AWQGKVVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERVA-------------
+>tr|H5WLJ1|H5WLJ1_9BURK R67 dihydrofolate reductase OS=Burkholderiales bacterium JOSHI_001 OX=864051 GN=BurJ1DRAFT_1864 PE=4 SV=1
+-------------------MTRNE-----------------ATPAAIELNEGLCHSWPAT
+HKTFRMGDKVRKVRGS-------QWHGRVVGWYSTDLTPEGYAVESDTERG---SVQIYP
+ASALEREA-------------
+>tr|A0A427GXU9|A0A427GXU9_PSEST Uncharacterized protein OS=Pseudomonas stutzeri OX=316 GN=EGI99_08510 PE=4 SV=1
+-------------------MYTLER-------------------IA-------RPAQTAP
+QGKFAMGDRVKKSTGS-------EWDGRVVGWYSTEQTPEGYAVESSAHRN---SVQIYP
+AKALEAVR-------------
+>tr|A0A2W7A3X0|A0A2W7A3X0_9RHIZ DfrB family trimethoprim-resistant dihydrofolate reductase OS=Chelatococcus sp. OX=1953771 GN=DI527_18070 PE=4 SV=1
+-------------------M-------------------------------------TLP
+GARFRLEDRVRKLRGS-------SWQGLVVGFYSTRLTPIGYAVESEREPG---SVQVWP
+ESALERVPEQAP---------
+>tr|A0A427DCF4|A0A427DCF4_9PSED Uncharacterized protein OS=Pseudomonas xanthomarina OX=271420 GN=EGI97_12540 PE=4 SV=1
+------------------------------------------------------------
+-----MGDLVKKSTGS-------EWVGRVVGWYSTEQTPEGYAVESSAHRN---SVQIYP
+VTALEAVE-------------
+>tr|A0A2V4WBN7|A0A2V4WBN7_ENSAD Dihydrofolate reductase (Trimethoprim resistance protein) OS=Ensifer adhaerens OX=106592 GN=DFS11_11250 PE=4 SV=1
+-----------------------------------------------------MVDRWPA
+DAAFQMGDYAAKKGRA-------SWRGKIVGWYRTDLTSLGYAIESHFEPG---SVQIYP
+ETAIEAWVPPKAESELE----
+>tr|A0A1G9XM33|A0A1G9XM33_9RHIZ R67 dihydrofolate reductase OS=Ensifer sp. YR511 OX=1855294 GN=SAMN05216328_11647 PE=4 SV=1
+-----------------------------------------------------MVDRWPA
+DAAFQMGDYAAKKGRA-------SWRGKIVGWYRTDLTSLGYAIESHFEPG---SVQIYP
+ETAIEAWVPPKAESELE----
+>tr|A0A2W4DNN3|A0A2W4DNN3_9RHIZ DfrB family trimethoprim-resistant dihydrofolate reductase OS=Rhizobium tumorigenes OX=2041385 GN=CPJ17_11035 PE=4 SV=1
+-----------------------------------------------------MLNPWPS
+DAKFQMGDYAAKKGRA-------SWRGKIVGWYRTDLTNLGYAIESYFEPG---SVQIYP
+ETAIEMWMPPRSD--------
+>tr|A0A0F6R7A8|A0A0F6R7A8_9CAUD Uncharacterized protein OS=Sinorhizobium phage phiM9 OX=1636182 GN=Sm_phiM9_002 PE=4 SV=1
+-------------------M-------------------------------------FEC
+FGRFGFGERVTKTKGS-------SWTGRVVGFYSTELTPIGYAVESETEKG---SVQIYP
+EAALTAAPKPELE--------
+>tr|A0A1R1QGT7|A0A1R1QGT7_9BRAD Uncharacterized protein OS=Bradyrhizobium sp. UFLA 03-321 OX=1783512 GN=BSN85_29855 PE=4 SV=1
+-------------------MSSFQ-----------------GNSVG-----GEMVDPWPA
+DAKFQMGDYAAKKGRA-------SWRGRIVGWYRTDLTRLGYAIESYFEPG---SVQIYP
+ETAIDAWQPPALERE------
+>tr|A0A117UUM5|A0A117UUM5_9SPHN Uncharacterized protein OS=Novosphingobium fuchskuhlense OX=1117702 GN=AQZ52_10825 PE=4 SV=1
+-------------------MTSAFYGPDQDAQAIAAWKRRSGDLVL-------IDREGMR
+ERKFTLGQRVTKIKGS-------KWTGRVVGFYSTNLTPVGYAIESENEPG---SVQIYP
+EAAIAAILGEGK---------
+>tr|A0A482U651|A0A482U651_9PSED Uncharacterized protein OS=Pseudomonas songnenensis OX=1176259 GN=EJA06_004430 PE=4 SV=1
+------------------------------------------------------------
+-----MGEPVRKISGS-------QWKGKVVGTYSTELTPEGYCVESSAEKG---SVQIYP
+AKALEAVE-------------
+>tr|A0A1G7DL98|A0A1G7DL98_9BRAD Dihydrofolate reductase (Trimethoprim resistance protein) OS=Bradyrhizobium sp. R5 OX=1855320 GN=SAMN05216337_10289 PE=4 SV=1
+-----------------------------------------------------MVDPWPA
+DAKFQMGDYAAKKGRA-------SWRGRIVGWYRTDLTRLGYAIESYFEPG---SVQIYP
+ETAIDAWQPPALERE------
+>tr|A0A430DPI2|A0A430DPI2_9SPHN DfrB family trimethoprim-resistant dihydrofolate reductase OS=Sphingomonas sp. ABOLF OX=1985879 GN=CA235_07250 PE=4 SV=1
+-------------------M----------------------QPRG-------EQQDWPA
+DAAFPNGALVQKKGRA-------SWRGKIVGWYRTDITALGYAVESAFEPG---SVQIYP
+ETALLAWDGERQAGREEV--A
+>tr|A0A0J7Y2N3|A0A0J7Y2N3_9SPHN Dihydrofolate reductase OS=Sphingobium czechense LL01 OX=1420583 GN=V473_07230 PE=4 SV=1
+-------------------M----------------------------------------
+-CAFNRGDHVEKISGS-------KWRGVVVGEYSTSLTPEGYAVESDTETG---SVQIYP
+AKALRSTSAAALHQGSGQ---
+>tr|A0A178HDS1|A0A178HDS1_AGRRH Uncharacterized protein OS=Agrobacterium rhizogenes OX=359 GN=A8L48_22745 PE=4 SV=1
+-------------------MKSAPFPKSEKASQRDPNKGLPPLPRN-------NLYEAKT
+AWAFADGDLVRKKSGS-------WWEGRVVGTYSTEQTPRGYAVQLDKAFG---PVQIYP
+ESALESALQSEER--------
+>tr|A0A0N7CEH1|A0A0N7CEH1_9CAUD Uncharacterized protein OS=Skermania phage SPI1 OX=1636544 GN=SPI1_66 PE=4 SV=1
+-------------------M----------------------------------------
+-ATFQRGDRVRKRTASADIARAAHWRGVVVGEYSTPVTSEGYAVMST-DPGSLYSVQVYP
+VGALEADYRPDENPLVSVPPL
+>UPI0000000584 status=active
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>UPI001205E32D status=active
+-------------------MREHA-----KAVVIAALDGNVEPALL-------TRSAAAD
+LSSLSLGDVVRKKSGS-------EWEGRVVGTYSTALTPEGYCVESSSHSG---SVQIYP
+VGALERKP-------------
+>UPI000FB7DB97 status=active
+-------------------M----------------------------------NNAVLG
+LGQYAIGTRMRKKSGS-------SWQGRVVGYYSTSLTPVGYCIESEREPG---SVQIYP
+AGALELVPDDVLDVQEAG--A
+>UPI0004A8CF2C status=active
+-----------------------------------------------------MVDRWPA
+DAAFQMGDYAAKKGRA-------SWRGKIVGWYRTDLTSLGYAIESHFEPG---SVQIYP
+ETAIEAWVPPKAESELE----
+>DfrB1_Joelle
+-------------------MERSS--------------NEVSNPVA-------GNFVFPS
+DATFGMGDRVRKKSGA-------AWQGQIVGWYCTNLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>DfrB2
+-------------------MGQSS--------------DEANAPVA-------GQFALPL
+SATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>DfrB3
+-------------------MDQHN--------------NGVSTLVA-------GQFALPS
+HATFGLGDRVRKKSGA-------AWQGQVVGWYCTKLTPEGYAVESESHPG---SVQIYP
+VAALERVA-------------
+>DfrB4
+-------------------MNEGK--------------NEVSTSAA-------GRFAFPS
+NATFALGDRVRKKSGA-------AWQGRIVGWYCTTLTPEGYAVESESHPG---SVQIYP
+MTALERVA-------------
+>DfrB5
+-------------------MDQGR--------------SEVSNPVA-------GQFAFPS
+NAAFGMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERIN-------------
+>DfrB6
+-------------------MDQGS--------------NEVINPVA-------GQFASPS
+NATFGMGDRVRKKSGA-------AWQGQIVGWYSTKLTPEGYAVESEAHPG---SVQIYP
+VAALERVN-------------
+>DfrB7
+-------------------MDQGS--------------NEVGNPVA-------GQFSFPS
+NAAFSMGDRVRKKSGA-------AWQGQIVGWYCTKLTPEGYAVESEAHPG---SVQIYP
+VAALERINGVQG---------
