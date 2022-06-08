@@ -1,4 +1,4 @@
-Scripts and data used for "Epistasis between promoter activity and coding mutations shapes gene evolvability" by Angel F. Cisneros*, Isabelle Gagnon-Arsenault*, Alexandre K. Dubé, Philippe C. Després, Pradum Kumar, Christian R. Landry
+Scripts and data used for "Epistasis between promoter activity and coding mutations shapes gene evolvability" by Angel F. Cisneros*, Isabelle Gagnon-Arsenault*, Alexandre K. Dubé, Philippe C. Després, Pradum Kumar, Kiana Lafontaine, Joelle N. Pelletier, Christian R. Landry
 
 \* indicates equal contributions
 
