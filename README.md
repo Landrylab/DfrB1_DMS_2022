@@ -1,6 +1,6 @@
-Scripts and data used for "Optimal gene expression level masks many deleterious and some beneficial mutations" by Angel F. Cisneros*, Isabelle Gagnon-Arsenault*, Alexandre K. Dubé, Philippe C. Després, Pradum Kumar, Christian R. Landry
+Scripts and data used for "Epistasis between promoter activity and coding mutations shapes gene evolvability" by Angel F. Cisneros*, Isabelle Gagnon-Arsenault*, Alexandre K. Dubé, Philippe C. Després, Pradum Kumar, Christian R. Landry
 
-* indicates equal contributions
+\* indicates equal contributions
 
 Overview of each folder:
 
