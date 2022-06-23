@@ -3103,7 +3103,7 @@ p_figs22_stab <- data_fig_4a %>% rowwise() %>%
   annotate('text', x = 0.07, y = 0.025, 
            label = expression(italic(s[weak] > s[opt])), parse = T, size = 10) +
   annotate('text', x = 0.07, y = -0.025, 
-           label = expression(italic(s[weak] > s[opt])), parse = T, size = 10) +
+           label = expression(italic(s[weak] < s[opt])), parse = T, size = 10) +
   labs(colour = expression(paste(bold('\u0394\u0394'), bolditalic('G'),
                                  bold(' subunit stability [kcal / mol]'), sep = '')),
        y = expression(paste(bold('\u0394'), bolditalic(s[weak]), bold(' ('), 
@@ -3137,7 +3137,7 @@ p_figs22_dim_int <- data_fig_4a %>% rowwise() %>%
   annotate('text', x = 0.07, y = 0.025, 
            label = expression(italic(s[weak] > s[opt])), parse = T, size = 10) +
   annotate('text', x = 0.07, y = -0.025, 
-           label = expression(italic(s[weak] > s[opt])), parse = T, size = 10) +
+           label = expression(italic(s[weak] < s[opt])), parse = T, size = 10) +
   labs(colour = expression(paste(bold('\u0394\u0394'), bolditalic('G'),
                                  bold(' dim. interface [kcal / mol]'), sep = '')),
        y = expression(paste(bold('\u0394'), bolditalic(s[weak]), bold(' ('), 
@@ -3173,7 +3173,7 @@ p_figs22_tet_int <- data_fig_4a %>% rowwise() %>%
   annotate('text', x = 0.07, y = 0.025, 
            label = expression(italic(s[weak] > s[opt])), parse = T, size = 10) +
   annotate('text', x = 0.07, y = -0.025, 
-           label = expression(italic(s[weak] > s[opt])), parse = T, size = 10) +
+           label = expression(italic(s[weak] < s[opt])), parse = T, size = 10) +
   labs(colour = expression(paste(bold('\u0394\u0394'), bolditalic('G'),
                                  bold(' tet. interface [kcal / mol]'), sep = '')),
        y = expression(paste(bold('\u0394'), bolditalic(s[weak]), bold(' ('), 

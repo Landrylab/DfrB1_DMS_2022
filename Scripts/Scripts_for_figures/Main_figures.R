@@ -1377,7 +1377,7 @@ p_fig3b <- critical_sites_deltaDMS %>% rowwise() %>%
            label = expression(italic(s[weak] > s[opt])),
            parse = T, size = 10) +
   annotate('text', x = 2, y = -0.3,
-           label = expression(italic(s[weak] > s[opt])),
+           label = expression(italic(s[weak] < s[opt])),
            parse = T, size = 10)
 p_fig3b
 
@@ -1558,7 +1558,7 @@ p_fig3d <- data_fig_3d %>% rowwise() %>%
            label = expression(italic(s[weak] > s[opt])),
            parse = T, size = 10) +
   annotate('text', x = -0.7, y = -0.5, 
-           label = expression(italic(s[weak] > s[opt])),
+           label = expression(italic(s[weak] < s[opt])),
            parse = T, size = 10)
 
 p_fig3d
