@@ -3,7 +3,12 @@
 #### This script will generate a complete dataset with  ####
 #### both the MiSeq and NovaSeq data and all the        ####
 #### selection coefficients.                            ####
+#### Version from October 11, 2022                      ####
 ############################################################
+
+### The 001_sequencing_data_processing must have been run before to load the data
+
+options(java.parameters = "-Xmx4096m")
 
 # Load libraries
 library(tidyverse)
@@ -17,23 +22,29 @@ library(BiocManager)
 library(ComplexHeatmap)
 library(RColorBrewer)
 library(circlize)
+library(mixtools)
+library(multimode)
+library(mixtools)
+
 
 theme_set(theme_cowplot())
 
-# Set path to home folder (DfrB1_DMS_2022)
+## Set path to home folder (DfrB1_DMS_2022)
 setwd('/path/to/DfrB1_DMS_2022/')
 
 #### Load the NovaSeq data ####
 
 metadata <- read.xlsx(
-  'Data/SuppTables_ManuscriptDfrB1.xlsx',
-                      sheetName = 'TableS2_DMS_sample_description', rowIndex = 1:89)
+  'Data/SuppTables_ManuscriptDfrB1.xlsx', 
+  sheetName = 'TableS2_DMS_sample_description',
+  # rowIndex = 1:89)
+  rowIndex = 2:78)
 
 #### Load the NovaSeq data at the codon level ####
 
 ### The 001_sequencing_data_processing must have been run before to load the data
 codon_file_list <- list.files(
-  'Data/Analysis_NovaSeq/read_abundances/Codons/',
+  'Data/Analysis_NovaSeq/aggregate_dataframes/Codons/',
   include.dirs = F, full.names = T)
 
 # Define the genetic code
@@ -84,7 +95,7 @@ for(infile in codon_file_list){
   sample_id <- str_split(string = basename(infile), pattern = '_')[[1]][4]
   
   # Read the file
-  codon_df <- read_delim(delim = ',', col_names = T, file = infile)
+  codon_df <- read_delim(delim = '\t', col_names = T, file = infile)
   colnames(codon_df)[1] <- 'Codon'
   
   # Transform into a tidy formatted df and add the pool number
@@ -101,9 +112,12 @@ all_codon_data$Sample <- as.numeric(all_codon_data$Sample)
 # Add the arabinose, TMP, timepoint from the metadata
 codon_read_abundances <- inner_join(x = all_codon_data %>% mutate(Sequencer = 'NovaSeq'), 
                                     y = metadata %>% 
-                                      select(Sample, ID, Experiment, Timepoint, Arabinose, TMP, Biological.replicate,
+                                      select(Sample, ID, Experiment, Timepoint, Arabinose,
+                                             TMP, Biological.replicate,
                                              Technical.replicate, Sequencing.platform),
                                     by = c('Sample' = 'Sample', 'Sequencer' = 'Sequencing.platform'))
+
+codon_read_abundances_t0 <- codon_read_abundances %>% filter(Timepoint == 0) 
 
 ## Add the data for the WT codons
 wt_matrix <- read_delim(file = 'Data/WT_sequence_table.txt', delim = '\t')
@@ -117,57 +131,111 @@ codon_read_abundances <- left_join(x = codon_read_abundances,
 codon_read_abundances <- left_join(x = codon_read_abundances, 
                                    y = genetic_code, by = c('Codon' = 'Codons'))
 
-## Remove UAG codon and group by encoded residue to aggregate read abundances
-novaseq_read_abundances_res <- codon_read_abundances %>% ungroup() %>%
-  filter(Codon != 'TAG') %>%
-  group_by(Position, Sample, Sequencer, Timepoint, Arabinose, TMP, Biological.replicate, 
-           Technical.replicate, Experiment, ID, WT_Residue, Encoded_residues) %>%
-  summarise(read_abundance = sum(read_abundance))
+#### Prepare the NovaSeq data at the codon level ####
 
-# Get the median of WT for each sample
-wt_medians <- codon_read_abundances %>% rowwise() %>%
+## Normalize by the total of reads per sample
+total_reads_novaseq_codons <- codon_read_abundances %>% ungroup() %>%
+  group_by(Sample) %>% 
+  summarise(total_reads = sum(read_abundance))
+
+## Calculate read fractions
+novaseq_read_abundances_codons <- left_join(x = codon_read_abundances, 
+                                            y = total_reads_novaseq_codons, 
+                                            by = c('Sample' = 'Sample')
+)
+
+# Rename the read count column and calculate read fractions
+novaseq_read_abundances_codons %<>% 
+  mutate(read_count = read_abundance, 
+         read_abundance = (read_count + 1) / total_reads) # Add a pseudocount
+
+## Calculate the median of wt for each sample
+wt_medians_novaseq_codons <- novaseq_read_abundances_codons  %>% ungroup() %>% rowwise() %>%
   filter(Codon == WT_Codon) %>% 
-  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate) %>%
+  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate, Technical.replicate) %>%
   summarise(median_wt = median(read_abundance))
 
+## Calculate selection coefficient within sample
 # Add these medians to the dataframe of read abundances
-codon_read_abundances <- left_join(x = codon_read_abundances, 
-                                   y = wt_medians %>% ungroup() %>% select(Sample, median_wt),
-                                   by = c('Sample' = 'Sample'))
+codon_read_abundances_novaseq <- left_join(x = novaseq_read_abundances_codons, 
+                                           y = wt_medians_novaseq_codons,
+                                           by = c('Sample' = 'Sample', 'Arabinose' = 'Arabinose', 
+                                                  'Timepoint' = 'Timepoint', 'TMP' = 'TMP', 
+                                                  'Biological.replicate' = 'Biological.replicate',
+                                                  'Technical.replicate' = 'Technical.replicate',
+                                                  'ID' = 'ID'))
 
 # Calculate Rmut / Rwt for all the data
-codon_read_abundances %<>% mutate(mut_wt_ratio = read_abundance / median_wt)
+codon_read_abundances_novaseq %<>% mutate(mut_wt_ratio = read_abundance / median_wt)
 
 # Separate the t0 samples and match them to their respective t10
-codon_read_abundances_t0 <- codon_read_abundances %>% filter(Timepoint == 0)
-codon_read_abundances_t10 <- codon_read_abundances %>% filter(Timepoint != 0)
+codon_read_abundances_novaseq_t0 <- codon_read_abundances_novaseq %>% filter(Timepoint == 0)
+codon_read_abundances_novaseq_t10 <- codon_read_abundances_novaseq %>% filter(Timepoint != 0)
 
-# Average technical replicates
-codon_read_abundances_t0_techavg <- codon_read_abundances_t0 %>% ungroup() %>%
-  group_by(WT_Codon, Experiment, Codon, Position, Timepoint, Arabinose, TMP, Sequencer, 
-           Biological.replicate, WT_Residue, Encoded_residues) %>%
+# Average technical replicates at t0
+codon_read_abundances_novaseq_t0_techavg <- codon_read_abundances_novaseq_t0 %>% ungroup() %>%
+  group_by(WT_Residue, Experiment, Encoded_residues, Position, 
+           WT_Codon, Codon,
+           Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
   summarise(mean_mut_wt_ratio_t0 = mean(mut_wt_ratio))
 
-codon_read_abundances_t10_techavg <- codon_read_abundances_t10 %>% ungroup() %>%
-  group_by(WT_Codon, Experiment, Codon, Position, Timepoint, Arabinose, TMP, Sequencer, 
-           Biological.replicate, WT_Residue, Encoded_residues) %>%
-  summarise(mean_mut_wt_ratio = mean(mut_wt_ratio))
 
-codon_read_abundances_matched <- left_join(x = codon_read_abundances_t10_techavg %>% ungroup(), 
-                                           y = codon_read_abundances_t0_techavg %>% ungroup() %>%
-                                             select(WT_Codon, Codon, Experiment, Position, mean_mut_wt_ratio_t0, TMP, 
-                                                    Arabinose), 
-                                           by = c('Codon' = 'Codon', 'Position' = 'Position', 'TMP' = 'TMP',
-                                                  'Arabinose' = 'Arabinose', 'WT_Codon' = 'WT_Codon', 
-                                                  'Experiment' = 'Experiment'))
+codon_read_abundances_novaseq_matched <-
+  left_join(x = codon_read_abundances_novaseq_t10 %>% ungroup(),
+            y = codon_read_abundances_novaseq_t0_techavg %>% ungroup() %>%
+              select(WT_Residue, Encoded_residues, WT_Codon, Codon, Experiment, Position,
+                     mean_mut_wt_ratio_t0, TMP,Arabinose),
+            by = c('Encoded_residues' = 'Encoded_residues', 'Position' = 'Position', 'TMP' = 'TMP',
+                   'WT_Codon' = 'WT_Codon', 'Codon' = 'Codon',
+                   'Arabinose' = 'Arabinose', 'WT_Residue' = 'WT_Residue',
+                   'Experiment' = 'Experiment'))
 
-# Calculate the selection coefficient
-codon_read_abundances_matched %<>% mutate(Timepoint = as.numeric(Timepoint)) %>%
-  mutate(sel_coeff = log2(mean_mut_wt_ratio / mean_mut_wt_ratio_t0) / Timepoint)
+## Calculate the selection coefficient
+# Add the number of generations for the NovaSeq experiment
+numbers_generations <- rbind(
+  c(0.01, 10.09), 
+  c(0.025, 9.775), 
+  c(0.05, 9.6825), 
+  c(0.2, 10.116), 
+  c(0.4, 10.205)
+)
+df_generations <- as.data.frame(numbers_generations)
+colnames(df_generations) <- c('Arabinose', 'Generations')
+
+codon_read_abundances_novaseq_matched %<>% 
+  left_join(x = codon_read_abundances_novaseq_matched %>%
+              mutate(Arabinose = as.numeric(Arabinose)), 
+            y = df_generations,
+            by = c('Arabinose' = 'Arabinose'))
+
+codon_read_abundances_novaseq_matched %<>% 
+  mutate(sel_coeff = log2(mut_wt_ratio / mean_mut_wt_ratio_t0) / Generations)
+
+## Remove the mutations that had fewer than 100 reads at t = 0
+discarded_novaseq_codon_t0 <- novaseq_read_abundances_codons %>% filter(Timepoint == 0) %>%
+  filter(read_count < 100) %>% # Minimum number of reads required at the start
+  mutate(ID_new = str_c(WT_Codon, Position, Codon, Arabinose, TMP, sep = '.')) # An ID to identify mutations easily
+
+discarded_novaseq_read_abundances_codon <- novaseq_read_abundances_codons %>%
+  mutate(ID_new = str_c(WT_Codon, Position, Codon, Arabinose, TMP, sep = '.')) %>%
+  filter(ID_new %in% discarded_novaseq_codon_t0$ID_new)
+
+codon_read_abundances_novaseq_matched_new <- codon_read_abundances_novaseq_matched %>%
+  mutate(ID_new = str_c(WT_Codon, Position, Codon, Arabinose, TMP, sep = '.')) %>%
+  filter(!(ID_new %in% discarded_novaseq_read_abundances_codon$ID_new))
+
+## Average over technical replicates
+codon_read_abundances_novaseq_matched_new %<>% ungroup() %>%
+  group_by(WT_Codon, Experiment, Codon, Position, 
+           WT_Residue, Encoded_residues,
+           Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
+  summarise(sel_coeff = mean(sel_coeff))
 
 # Add the IDs now that the technical replicates have been averaged and selection
 # coefficients have been calculated
-codon_read_abundances_matched %<>% rowwise() %>%
+codon_read_abundances_novaseq_matched_new %<>% rowwise() %>%
   mutate(temp_TMP = ifelse(TMP == 10, 'T', 'NT'), 
          temp_sequencer = ifelse(Sequencer == 'NovaSeq', 'N', 'M'), 
          temp_Arabinose = toString(format(round(as.numeric(Arabinose), 3), nsmall = 3))
@@ -185,24 +253,254 @@ codon_read_abundances_matched %<>% rowwise() %>%
 
 
 ## Remove unneeded columns
-all_novaseq_data <- codon_read_abundances_matched %>%
+all_novaseq_data_codon <- codon_read_abundances_novaseq_matched_new %>% ungroup() %>%
   select(Position, WT_Codon, Codon, WT_Residue, Encoded_residues, ID, Timepoint, Arabinose, TMP, 
          sel_coeff, Sequencer)
 
-#### Load the MiSeq data with TMP ####
+## Correct the distributions by subtracting the mean of the second peak
 
-### The 001_sequencing_data_processing must have been run before to load the data
-codon_file_list <- list.files('Data/Analysis_MiSeq/read_abundances/Codons/', include.dirs = F,
-                              full.names = T)
+# Find the two modes of each distribution
+mode_check <- all_novaseq_data_codon %>% 
+  group_by(Arabinose, Timepoint, TMP, Sequencer, ID) %>%
+  summarise(mode2 = normalmixEM(t(sel_coeff))$mu[2]) ## mixtools
+
+
+## Subtract the calculated modes from the distribution
+all_novaseq_data_corrected_codon <- left_join(x = all_novaseq_data_codon, 
+                                        y = mode_check, 
+                                        by = c('Arabinose' = 'Arabinose', 'Timepoint' = 'Timepoint', 
+                                               'TMP' = 'TMP', 'Sequencer' = 'Sequencer', 
+                                               'ID' = 'ID'))%>%
+  mutate(sel_coeff_corrected = sel_coeff - mode2)
+
+p <- all_novaseq_data_corrected_codon %>% filter(TMP == 10) %>%
+  ggplot(aes(x = sel_coeff_corrected, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~ID) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('NovaSeq data only, correct number of generations, corrected distributions') +
+  labs(colour = 'Arabinose')
+p
+
+## Check the data without TMP
+p <- all_novaseq_data_corrected_codon %>% filter(TMP == 0) %>%
+  ggplot(aes(x = sel_coeff_corrected, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~ID) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('NovaSeq data only, no TMP, correct number of generations, corrected distributions') +
+  labs(colour = 'Arabinose')
+p
+
+#### Continue working with the NovaSeq data at the residue level ####
+
+## Remove UAG codon and group by encoded residue to aggregate read abundances
+novaseq_read_abundances_res <- codon_read_abundances %>% ungroup() %>%
+  filter(Codon != 'TAG') %>%
+  group_by(Position, Sample, Sequencer, Timepoint, Arabinose, TMP, Biological.replicate, 
+           Technical.replicate, Experiment, ID, WT_Residue, Encoded_residues) %>%
+  summarise(read_abundance = sum(read_abundance))
+
+## Calculate the total number of reads in each sample to normalize
+total_reads_novaseq <- novaseq_read_abundances_res %>% ungroup() %>%
+  group_by(Sample) %>% 
+  summarise(total_reads = sum(read_abundance))
+
+novaseq_read_abundances_res <- left_join(x = novaseq_read_abundances_res, 
+                                         y = total_reads_novaseq, 
+                                         by = c('Sample' = 'Sample')
+)
+
+# Rename the read count column and calculate read fractions
+novaseq_read_abundances_res %<>% 
+  mutate(read_count = read_abundance, 
+         read_abundance = (read_count + 1) / total_reads) # Add a pseudocount
+
+
+## Identify the positions to discard (those that had fewer than 100 reads at t = 0)
+discarded_novaseq_res_t0 <- novaseq_read_abundances_res %>% filter(Timepoint == 0) %>%
+  filter(read_count < 100) %>% # Minimum number of reads required at the start
+  mutate(ID_new = str_c(WT_Residue, Position,Encoded_residues, Arabinose, TMP, sep = '.')) # An ID to identify mutations easily
+
+discarded_novaseq_read_abundances_res <- novaseq_read_abundances_res %>%
+  mutate(ID_new = str_c(WT_Residue, Position, Encoded_residues, Arabinose, TMP, sep = '.')) %>%
+  filter(ID_new %in% discarded_novaseq_res_t0$ID_new)
+
+# Get the median of WT for each sample
+wt_medians_novaseq <- novaseq_read_abundances_res  %>% ungroup() %>% rowwise() %>%
+  filter(Encoded_residues == WT_Residue) %>% 
+  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate, Technical.replicate) %>%
+  summarise(median_wt = median(read_abundance))
+
+# Add these medians to the dataframe of read abundances
+residue_read_abundances_novaseq <- left_join(x = novaseq_read_abundances_res, 
+                                             y = wt_medians_novaseq,
+                                             by = c('Sample' = 'Sample', 'Arabinose' = 'Arabinose', 
+                                                    'Timepoint' = 'Timepoint', 'TMP' = 'TMP', 
+                                                    'Biological.replicate' = 'Biological.replicate',
+                                                    'Technical.replicate' = 'Technical.replicate',
+                                                    'ID' = 'ID'))
+
+# Calculate Rmut / Rwt for all the data
+residue_read_abundances_novaseq %<>% mutate(mut_wt_ratio = read_abundance / median_wt)
+
+# Separate the t0 samples and match them to their respective t10
+residue_read_abundances_novaseq_t0 <- residue_read_abundances_novaseq %>% filter(Timepoint == 0)
+residue_read_abundances_novaseq_t10 <- residue_read_abundances_novaseq %>% filter(Timepoint != 0)
+
+# Average technical replicates at t0
+residue_read_abundances_novaseq_t0_techavg <- residue_read_abundances_novaseq_t0 %>% ungroup() %>%
+  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
+  summarise(mean_mut_wt_ratio_t0 = mean(mut_wt_ratio))
+
+
+residue_read_abundances_novaseq_matched <-
+  left_join(x = residue_read_abundances_novaseq_t10 %>% ungroup(),
+            y = residue_read_abundances_novaseq_t0_techavg %>% ungroup() %>%
+              select(WT_Residue, Encoded_residues, Experiment, Position,
+                     mean_mut_wt_ratio_t0, TMP,Arabinose),
+            by = c('Encoded_residues' = 'Encoded_residues', 'Position' = 'Position', 'TMP' = 'TMP',
+                   'Arabinose' = 'Arabinose', 'WT_Residue' = 'WT_Residue',
+                   'Experiment' = 'Experiment'))
+
+## Calculate the selection coefficient
+# Add the number of generations for the NovaSeq experiment
+numbers_generations <- rbind(
+  c(0.01, 10.09), 
+  c(0.025, 9.775), 
+  c(0.05, 9.6825), 
+  c(0.2, 10.116), 
+  c(0.4, 10.205)
+)
+df_generations <- as.data.frame(numbers_generations)
+colnames(df_generations) <- c('Arabinose', 'Generations')
+
+residue_read_abundances_novaseq_matched %<>% 
+  left_join(x = residue_read_abundances_novaseq_matched %>%
+              mutate(Arabinose = as.numeric(Arabinose)), 
+            y = df_generations,
+            by = c('Arabinose' = 'Arabinose'))
+
+residue_read_abundances_novaseq_matched %<>% 
+  mutate(sel_coeff = log2(mut_wt_ratio / mean_mut_wt_ratio_t0) / Generations)
+
+## Remove the mutations that had fewer than 100 reads at t = 0
+residue_read_abundances_novaseq_matched_new <- residue_read_abundances_novaseq_matched %>%
+  mutate(ID_new = str_c(WT_Residue, Position,Encoded_residues, Arabinose, TMP, sep = '.')) %>%
+  filter(!(ID_new %in% discarded_novaseq_read_abundances_res$ID_new))
+
+# Average by technical replicates
+residue_read_abundances_novaseq_matched_new %<>% ungroup() %>%
+  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
+  summarise(sel_coeff = mean(sel_coeff))
+
+# Add the IDs now that the technical replicates have been averaged and selection
+# coefficients have been calculated
+residue_read_abundances_novaseq_matched_new %<>% rowwise() %>%
+  mutate(temp_TMP = ifelse(TMP == 10, 'T', 'NT'), 
+         temp_sequencer = ifelse(Sequencer == 'NovaSeq', 'N', 'M'), 
+         temp_Arabinose = toString(format(round(as.numeric(Arabinose), 3), nsmall = 3))
+  ) %>%
+  mutate(ID = str_c('E', toString(Experiment), 
+                    '.BR', toString(Biological.replicate),
+                    '.', substr(temp_Arabinose, start = 3,
+                                stop = nchar(temp_Arabinose)
+                    ),
+                    '.', temp_TMP,
+                    '.S', temp_sequencer,
+                    sep = ''
+  )
+  )
+
+
+## Remove unneeded columns
+all_novaseq_data <- residue_read_abundances_novaseq_matched_new %>% ungroup() %>%
+  select(Position, WT_Residue, Encoded_residues, ID, Timepoint, Arabinose, TMP, 
+         sel_coeff, Sequencer)
+
+## Remove the mutations that needed to be discarded
+# Average by technical replicates
+residue_read_abundances_novaseq_matched_new %<>% ungroup() %>%
+  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
+  summarise(sel_coeff = mean(sel_coeff))
+
+# Add the IDs now that the technical replicates have been averaged and selection
+# coefficients have been calculated
+residue_read_abundances_novaseq_matched_new %<>% rowwise() %>%
+  mutate(temp_TMP = ifelse(TMP == 10, 'T', 'NT'), 
+         temp_sequencer = ifelse(Sequencer == 'NovaSeq', 'N', 'M'), 
+         temp_Arabinose = toString(format(round(as.numeric(Arabinose), 3), nsmall = 3))
+  ) %>%
+  mutate(ID = str_c('E', toString(Experiment), 
+                    '.BR', toString(Biological.replicate),
+                    '.', substr(temp_Arabinose, start = 3,
+                                stop = nchar(temp_Arabinose)
+                    ),
+                    '.', temp_TMP,
+                    '.S', temp_sequencer,
+                    sep = ''
+  )
+  )
+
+
+## Remove unneeded columns
+all_novaseq_data <- residue_read_abundances_novaseq_matched_new %>% ungroup() %>%
+  select(Position, WT_Residue, Encoded_residues, ID, Timepoint, Arabinose, TMP, 
+         sel_coeff, Sequencer)
+
+#### Adjust the NovaSeq distributions to remove bias ####
+# Find the two modes of each distribution
+mode_check <- all_novaseq_data %>% 
+  group_by(Arabinose, Timepoint, TMP, Sequencer, ID) %>%
+  summarise(mode2 = normalmixEM(t(sel_coeff))$mu[2]) ## mixtools
+
+
+## Subtract the calculated modes from the distribution
+all_novaseq_data_corrected <- left_join(x = all_novaseq_data, 
+                                        y = mode_check, 
+                                        by = c('Arabinose' = 'Arabinose', 'Timepoint' = 'Timepoint', 
+                                               'TMP' = 'TMP', 'Sequencer' = 'Sequencer', 
+                                               'ID' = 'ID'))%>%
+  mutate(sel_coeff_corrected = sel_coeff - mode2)
+
+p <- all_novaseq_data_corrected %>% filter(TMP == 10) %>%
+  ggplot(aes(x = sel_coeff_corrected, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~ID) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('NovaSeq data only, correct number of generations, corrected distributions') +
+  labs(colour = 'Arabinose')
+p
+
+## Distributions for the data with TMP = 0
+p <- all_novaseq_data_corrected %>% filter(TMP == 0) %>%
+  ggplot(aes(x = sel_coeff_corrected, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~ID) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('NovaSeq data only, correct number of generations, no TMP, corrected distributions (normalMixEM)') +
+  labs(colour = 'Arabinose')
+p
+
+#### MiSeq ####
+
+## Load the data
+codon_file_list <- list.files(
+  'Data/Analysis_MiSeq/aggregate_dataframes/Codons/',
+  include.dirs = F,
+  full.names = T)
 
 all_codon_data <- c()
 
 for(infile in codon_file_list){
   # Extract the sample ID from the name
-  sample_id <- str_split(string = basename(infile), pattern = '_')[[1]][1]
+  sample_id <- str_split(string = basename(infile), pattern = '_')[[1]][5]
   
   # Read the file
-  codon_df <- read_delim(delim = ',', col_names = T, file = infile)
+  codon_df <- read_delim(delim = '\t', col_names = T, file = infile)
   colnames(codon_df)[1] <- 'Codon'
   
   # Transform into a tidy formatted df and add the pool number
@@ -234,34 +532,46 @@ codon_read_abundances_miseq <- left_join(x = codon_read_abundances_miseq,
 codon_read_abundances_miseq <- left_join(x = codon_read_abundances_miseq, 
                                          y = genetic_code, by = c('Codon' = 'Codons'))
 
-## Remove UAG codon and group by encoded residue to aggregate read abundances
-miseq_read_abundances_res <- codon_read_abundances_miseq %>% ungroup() %>%
-  filter(Codon != 'TAG') %>%
-  group_by(Position, Sample, Sequencer, Timepoint, Arabinose, TMP, Biological.replicate, 
-           Technical.replicate, Experiment, ID, WT_Residue, Encoded_residues) %>%
-  summarise(read_abundance = sum(read_abundance))
+## Normalize by the total of reads per sample
+total_reads_miseq_codons <- codon_read_abundances_miseq %>% ungroup() %>%
+  group_by(Sample) %>% 
+  summarise(total_reads = sum(read_abundance))
 
-# Get the median of WT for each sample
-wt_medians_miseq <- codon_read_abundances_miseq %>% rowwise() %>%
+## Calculate read fractions
+miseq_read_abundances_codons <- left_join(x = codon_read_abundances_miseq, 
+                                          y = total_reads_miseq_codons, 
+                                          by = c('Sample' = 'Sample')
+)
+
+# Rename the read count column and calculate read fractions
+miseq_read_abundances_codons %<>% 
+  mutate(read_count = read_abundance, 
+         read_abundance = (read_count + 1) / total_reads) # Add a pseudocount
+
+## Calculate the median of wt for each sample
+wt_medians_miseq_codons <- miseq_read_abundances_codons  %>% ungroup() %>% rowwise() %>%
   filter(Codon == WT_Codon) %>% 
-  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate) %>%
+  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate, Technical.replicate) %>%
   summarise(median_wt = median(read_abundance))
 
+## Calculate selection coefficient within sample
 # Add these medians to the dataframe of read abundances
-codon_read_abundances_miseq <- left_join(x = codon_read_abundances_miseq, 
-                                         y = wt_medians_miseq,
+codon_read_abundances_miseq_new <- left_join(x = miseq_read_abundances_codons, 
+                                         y = wt_medians_miseq_codons,
                                          by = c('Sample' = 'Sample', 'Arabinose' = 'Arabinose', 
                                                 'Timepoint' = 'Timepoint', 'TMP' = 'TMP', 
-                                                'Biological.replicate' = 'Biological.replicate', 
+                                                'Biological.replicate' = 'Biological.replicate',
+                                                'Technical.replicate' = 'Technical.replicate',
                                                 'ID' = 'ID'))
 
 # Calculate Rmut / Rwt for all the data
-codon_read_abundances_miseq %<>% mutate(mut_wt_ratio = read_abundance / median_wt)
+codon_read_abundances_miseq_new %<>% mutate(mut_wt_ratio = read_abundance / median_wt)
 
 # Separate the t0 samples and match them to their respective t10
-codon_read_abundances_miseq_t0 <- codon_read_abundances_miseq %>% filter(Timepoint == 0)
-codon_read_abundances_miseq_t10 <- codon_read_abundances_miseq %>% filter(Timepoint != 0)
+codon_read_abundances_miseq_t0 <- codon_read_abundances_miseq_new %>% filter(Timepoint == 0)
+codon_read_abundances_miseq_t10 <- codon_read_abundances_miseq_new %>% filter(Timepoint != 0)
 
+## Calculate selection coefficient
 codon_read_abundances_matched_miseq <- left_join(x = codon_read_abundances_miseq_t10, 
                                                  y = codon_read_abundances_miseq_t0 %>% 
                                                    mutate(mut_wt_ratio_t0 = mut_wt_ratio) %>%
@@ -270,125 +580,38 @@ codon_read_abundances_matched_miseq <- left_join(x = codon_read_abundances_miseq
                                                         'TMP' = 'TMP', 'Arabinose' = 'Arabinose', 
                                                         'Experiment' = 'Experiment'))
 
-# Calculate the selection coefficient
-codon_read_abundances_matched_miseq %<>% mutate(Timepoint = as.numeric(Timepoint)) %>%
+codon_read_abundances_matched_miseq %<>% 
   mutate(sel_coeff = log2(mut_wt_ratio / mut_wt_ratio_t0) / Timepoint)
 
-# Add the IDs now that the technical replicates have been averaged and selection
-# coefficients have been calculated
-codon_read_abundances_matched_miseq %<>% rowwise() %>%
-  mutate(temp_TMP = ifelse(TMP == 10, 'T', 'NT'), 
-         temp_sequencer = ifelse(Sequencer == 'NovaSeq', 'N', 'M'), 
-         temp_Arabinose = toString(format(round(as.numeric(Arabinose), 3), nsmall = 3))
-  ) %>%
-  mutate(ID = str_c('E', toString(Experiment), 
-                    '.BR', toString(Biological.replicate),
-                    '.', substr(temp_Arabinose, start = 3,
-                                stop = nchar(temp_Arabinose)
-                    ),
-                    '.', temp_TMP,
-                    '.S', temp_sequencer,
-                    sep = ''
-  )
-  )
+## Remove mutations with less than 100 reads at t = 0
+discarded_miseq_codon_t0 <- codon_read_abundances_miseq_new %>% filter(Timepoint == 0) %>%
+  filter(read_count < 100) %>% # Minimum number of reads required at the start
+  mutate(ID_new = str_c(WT_Codon, Position, Codon, Arabinose, TMP, sep = '.')) # An ID to identify mutations easily
 
-all_miseq_data <- bind_rows(codon_read_abundances_matched_miseq %>% mutate(Sequencer = 'MiSeq') %>%
-                              select(Position, WT_Codon, Codon, WT_Residue, Encoded_residues,
-                                     ID, Timepoint, Arabinose, TMP,
-                                     sel_coeff, Sequencer)) 
+discarded_miseq_read_abundances_codon <- codon_read_abundances_miseq_new %>%
+  mutate(ID_new = str_c(WT_Codon, Position, Codon, Arabinose, TMP, sep = '.')) %>%
+  filter(ID_new %in% discarded_miseq_codon_t0$ID_new)
 
-#### Put the MiSeq and NovaSeq data together (codons) ####
+codon_read_abundances_miseq_matched_new <- codon_read_abundances_matched_miseq %>%
+  mutate(ID_new = str_c(WT_Codon, Position, Codon, Arabinose, TMP, sep = '.')) %>%
+  filter(!(ID_new %in% discarded_miseq_read_abundances_codon$ID_new))
 
-colnames(all_novaseq_data)
-colnames(all_miseq_data)
+## Check the distribution of selection coefficients
+p <- codon_read_abundances_miseq_matched_new %>% 
+  filter(TMP == 10) %>%
+  mutate(Rep_check = str_c('BR = ', Biological.replicate, ', TR = ', Technical.replicate, sep = '')) %>%
+  ggplot(aes(x = sel_coeff, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~Rep_check, nrow = 2) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('MiSeq data only, correct number of generations') +
+  labs(colour = 'Arabinose')
+p
 
-# Average selection coefficients of all replicates
-all_data_all_reps <- bind_rows(all_novaseq_data %>% 
-                                 mutate(Timepoint = as.numeric(Timepoint)),
-                               all_miseq_data %>%
-                                 mutate(Timepoint = as.numeric(Timepoint))
-) %>% ungroup() %>%
-  group_by(Position, WT_Codon, Codon, WT_Residue, Encoded_residues,
-           Timepoint, Arabinose, TMP) %>%
-  summarise(mean_sel_coeff = mean(sel_coeff),
-            sd_sel_coeff = sd(sel_coeff),
-            sem_sel_coeff = sd(sel_coeff) / sqrt(n()), 
-            num_samples = n())
-
-
-## Concatenate all the data points
-all_data_all_reps_notavg <- bind_rows(all_novaseq_data %>%
-                                        mutate(Timepoint = as.numeric(Timepoint)),
-                                      all_miseq_data %>%
-                                        mutate(Timepoint = as.numeric(Timepoint))
-)
-
-# Arrange the tables by position
-all_data_all_reps %<>% mutate(Position = as.numeric(Position)) %>%
-  arrange(Position)
-all_data_all_reps_notavg %<>% mutate(Position = as.numeric(Position)) %>%
-  arrange(Position)
-
-
-#### Save the datasets ####
-write.table(x = all_data_all_reps, quote = F, sep = '\t', row.names = F, col.names = T, append = F, 
-            file = 'Data/Complete_datasets/complete_dataset_avgBothSequencers_Codons.txt')
-write.table(x = all_data_all_reps_notavg, quote = F, sep = '\t', row.names = F, col.names = T, append = F, 
-            file = 'Data/Complete_datasets/all_data_all_reps_bothSequencers_Codons.txt')
-
-#### Continue working with the data at the residue level ####
-
-#### NovaSeq residue level ####
-
-# Get the median of WT for each sample
-wt_medians_novaseq <- novaseq_read_abundances_res  %>% ungroup() %>% rowwise() %>%
-  filter(Encoded_residues == WT_Residue) %>% 
-  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate) %>%
-  summarise(median_wt = median(read_abundance))
-
-# Add these medians to the dataframe of read abundances
-residue_read_abundances_novaseq <- left_join(x = novaseq_read_abundances_res, 
-                                           y = wt_medians,
-                                           by = c('Sample' = 'Sample', 'Arabinose' = 'Arabinose', 
-                                                  'Timepoint' = 'Timepoint', 'TMP' = 'TMP', 
-                                                  'Biological.replicate' = 'Biological.replicate', 
-                                                  'ID' = 'ID'))
-
-# Calculate Rmut / Rwt for all the data
-residue_read_abundances_novaseq %<>% mutate(mut_wt_ratio = read_abundance / median_wt)
-
-# Separate the t0 samples and match them to their respective t10
-residue_read_abundances_novaseq_t0 <- residue_read_abundances_novaseq %>% filter(Timepoint == 0)
-residue_read_abundances_novaseq_t10 <- residue_read_abundances_novaseq %>% filter(Timepoint != 0)
-
-# Average technical replicates
-residue_read_abundances_novaseq_t0_techavg <- residue_read_abundances_novaseq_t0 %>% ungroup() %>%
-  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer, 
-           Biological.replicate) %>%
-  summarise(mean_mut_wt_ratio_t0 = mean(mut_wt_ratio))
-
-residue_read_abundances_novaseq_t10_techavg <- residue_read_abundances_novaseq_t10 %>% ungroup() %>%
-  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer, 
-           Biological.replicate) %>%
-  summarise(mean_mut_wt_ratio = mean(mut_wt_ratio))
-
-
-residue_read_abundances_novaseq_matched <-
-  left_join(x = residue_read_abundances_novaseq_t10_techavg %>% ungroup(),
-            y = residue_read_abundances_novaseq_t0_techavg %>% ungroup() %>%
-              select(WT_Residue, Encoded_residues, Experiment, Position,
-                     mean_mut_wt_ratio_t0, TMP,Arabinose), 
-            by = c('Encoded_residues' = 'Encoded_residues', 'Position' = 'Position', 'TMP' = 'TMP',
-                   'Arabinose' = 'Arabinose', 'WT_Residue' = 'WT_Residue', 
-                   'Experiment' = 'Experiment'))
-
-# Calculate the selection coefficient
-residue_read_abundances_novaseq_matched %<>% mutate(Timepoint = as.numeric(Timepoint)) %>%
-  mutate(sel_coeff = log2(mean_mut_wt_ratio / mean_mut_wt_ratio_t0) / Timepoint)
 
 # Add the IDs now that the technical replicates have been averaged and selection
 # coefficients have been calculated
-residue_read_abundances_novaseq_matched %<>% rowwise() %>%
+codon_read_abundances_miseq_matched_new %<>% rowwise() %>%
   mutate(temp_TMP = ifelse(TMP == 10, 'T', 'NT'), 
          temp_sequencer = ifelse(Sequencer == 'NovaSeq', 'N', 'M'), 
          temp_Arabinose = toString(format(round(as.numeric(Arabinose), 3), nsmall = 3))
@@ -406,16 +629,68 @@ residue_read_abundances_novaseq_matched %<>% rowwise() %>%
 
 
 ## Remove unneeded columns
-all_novaseq_data <- residue_read_abundances_novaseq_matched %>%
-  select(Position, WT_Residue, Encoded_residues, ID, Timepoint, Arabinose, TMP, 
+all_miseq_data_codon <- codon_read_abundances_miseq_matched_new %>% ungroup() %>%
+  select(Position, WT_Codon, Codon, WT_Residue, Encoded_residues, ID, Timepoint, Arabinose, TMP, 
          sel_coeff, Sequencer)
 
+## Do the correction
+mode_check_new <- all_miseq_data_codon %>% 
+  group_by(Arabinose, Timepoint, TMP, Sequencer, ID) %>%
+  # Positions in the "locations" list are first mode, antimode, second mode
+  summarise(mode2 = normalmixEM(t(sel_coeff))$mu[2])
 
-#### MiSeq residue level ####
+all_miseq_data_corrected_codon <- left_join(x = all_miseq_data_codon, 
+                                            y = mode_check_new, 
+                                            by = c('Arabinose' = 'Arabinose', 'Timepoint' = 'Timepoint', 
+                                                   'TMP' = 'TMP', 'Sequencer' = 'Sequencer', 
+                                                   'ID' = 'ID'))%>%
+  mutate(sel_coeff_corrected = sel_coeff - mode2)
+
+p <- all_miseq_data_corrected_codon %>% filter(TMP == 10) %>%
+  ggplot(aes(x = sel_coeff_corrected, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~ID) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('MiSeq data only, correct number of generations, corrected distributions (normalMixEM)') +
+  labs(colour = 'Arabinose')
+p
+
+#### Continue working with the MiSeq data, residue level ####
+
+## Remove UAG codon and group by encoded residue to aggregate read abundances
+miseq_read_abundances_res <- codon_read_abundances_miseq %>% ungroup() %>%
+  filter(Codon != 'TAG') %>%
+  group_by(Position, Sample, Sequencer, Timepoint, Arabinose, TMP, Biological.replicate, 
+           Technical.replicate, Experiment, ID, WT_Residue, Encoded_residues) %>%
+  summarise(read_abundance = sum(read_abundance))
+
+## Calculate the total number of reads in each sample to normalize
+total_reads_miseq <- miseq_read_abundances_res %>% ungroup() %>%
+  group_by(Sample) %>% 
+  summarise(total_reads = sum(read_abundance))
+
+miseq_read_abundances_res <- left_join(x = miseq_read_abundances_res, 
+                                       y = total_reads_miseq, 
+                                       by = c('Sample' = 'Sample')
+)
+
+# Rename the read count column and calculate read fractions
+miseq_read_abundances_res %<>% 
+  mutate(read_count = read_abundance, 
+         read_abundance = (read_count + 1) / total_reads)
+
+discarded_miseq_res_t0 <- miseq_read_abundances_res %>% filter(Timepoint == 0) %>%
+  filter(read_count < 100) %>% # Minimum number of reads required at the start
+  mutate(ID_new = str_c(WT_Residue, Position,Encoded_residues, Arabinose, TMP, sep = '.')) # An ID to identify mutations easily
+
+discarded_miseq_read_abundances_res <- miseq_read_abundances_res %>%
+  mutate(ID_new = str_c(WT_Residue, Position, Encoded_residues, Arabinose, TMP, sep = '.')) %>%
+  filter(ID_new %in% discarded_miseq_res_t0$ID_new)
+
 # Get the median of WT for each sample
 wt_medians_miseq <- miseq_read_abundances_res  %>% ungroup() %>% rowwise() %>%
   filter(Encoded_residues == WT_Residue) %>% 
-  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate) %>%
+  group_by(Sample, ID, Timepoint, Arabinose, TMP, Biological.replicate, Technical.replicate) %>%
   summarise(median_wt = median(read_abundance))
 
 # Add these medians to the dataframe of read abundances
@@ -423,7 +698,8 @@ residue_read_abundances_miseq <- left_join(x = miseq_read_abundances_res,
                                            y = wt_medians_miseq,
                                            by = c('Sample' = 'Sample', 'Arabinose' = 'Arabinose', 
                                                   'Timepoint' = 'Timepoint', 'TMP' = 'TMP', 
-                                                  'Biological.replicate' = 'Biological.replicate', 
+                                                  'Biological.replicate' = 'Biological.replicate',
+                                                  'Technical.replicate' = 'Technical.replicate',
                                                   'ID' = 'ID'))
 
 # Calculate Rmut / Rwt for all the data
@@ -433,22 +709,61 @@ residue_read_abundances_miseq %<>% mutate(mut_wt_ratio = read_abundance / median
 residue_read_abundances_miseq_t0 <- residue_read_abundances_miseq %>% filter(Timepoint == 0)
 residue_read_abundances_miseq_t10 <- residue_read_abundances_miseq %>% filter(Timepoint != 0)
 
-residue_read_abundances_matched_miseq <- left_join(x = residue_read_abundances_miseq_t10 %>% ungroup(), 
-                                                   y = residue_read_abundances_miseq_t0 %>% ungroup() %>%
-                                                     mutate(mut_wt_ratio_t0 = mut_wt_ratio) %>%
-                                                     select(Encoded_residues, Position, Experiment, mut_wt_ratio_t0, TMP, Arabinose), 
-                                                   by = c('Encoded_residues' = 'Encoded_residues',
-                                                          'Position' = 'Position',
-                                                          'TMP' = 'TMP', 'Arabinose' = 'Arabinose', 
-                                                          'Experiment' = 'Experiment'))
+# Average technical replicates at t0
+residue_read_abundances_miseq_t0_techavg <- residue_read_abundances_miseq_t0 %>% ungroup() %>%
+  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
+  summarise(mean_mut_wt_ratio_t0 = mean(mut_wt_ratio))
 
-# Calculate the selection coefficient
-residue_read_abundances_matched_miseq %<>% mutate(Timepoint = as.numeric(Timepoint)) %>%
-  mutate(sel_coeff = log2(mut_wt_ratio / mut_wt_ratio_t0) / Timepoint)
+
+residue_read_abundances_miseq_matched <-
+  left_join(x = residue_read_abundances_miseq_t10 %>% ungroup(),
+            y = residue_read_abundances_miseq_t0_techavg %>% ungroup() %>%
+              select(WT_Residue, Encoded_residues, Experiment, Position,
+                     mean_mut_wt_ratio_t0, TMP,Arabinose),
+            by = c('Encoded_residues' = 'Encoded_residues', 'Position' = 'Position', 'TMP' = 'TMP',
+                   'Arabinose' = 'Arabinose', 'WT_Residue' = 'WT_Residue',
+                   'Experiment' = 'Experiment'))
+
+residue_read_abundances_miseq_matched %<>% 
+  mutate(sel_coeff = log2(mut_wt_ratio / mean_mut_wt_ratio_t0) / Timepoint)
+
+p <- residue_read_abundances_miseq_matched %>% 
+  filter(TMP == 10) %>%
+  mutate(Rep_check = str_c('BR = ', Biological.replicate, ', TR = ', Technical.replicate, sep = '')) %>%
+  ggplot(aes(x = sel_coeff, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~Rep_check, nrow = 2) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('MiSeq data only, correct number of generations') +
+  labs(colour = 'Arabinose')
+p
+
+## Remove the mutations that had fewer than 100 reads at t = 0
+residue_read_abundances_miseq_matched_new <- residue_read_abundances_miseq_matched %>%
+  mutate(ID_new = str_c(WT_Residue, Position,Encoded_residues, Arabinose, TMP, sep = '.')) %>%
+  filter(!(ID_new %in% discarded_miseq_read_abundances_res$ID_new))
+
+p <- residue_read_abundances_miseq_matched_new %>% 
+  filter(TMP == 10) %>%
+  mutate(Rep_check = str_c('BR = ', Biological.replicate, ', TR = ', Technical.replicate, sep = '')) %>%
+  ggplot(aes(x = sel_coeff, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~Rep_check, nrow = 2) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('MiSeq data only, correct number of generations') +
+  labs(colour = 'Arabinose')
+p
+
+# Average by technical replicates
+residue_read_abundances_miseq_matched_new %<>% ungroup() %>%
+  group_by(WT_Residue, Experiment, Encoded_residues, Position, Timepoint, Arabinose, TMP, Sequencer,
+           Biological.replicate) %>%
+  summarise(sel_coeff = mean(sel_coeff))
 
 # Add the IDs now that the technical replicates have been averaged and selection
 # coefficients have been calculated
-residue_read_abundances_matched_miseq %<>% rowwise() %>%
+residue_read_abundances_miseq_matched_new %<>% rowwise() %>%
   mutate(temp_TMP = ifelse(TMP == 10, 'T', 'NT'), 
          temp_sequencer = ifelse(Sequencer == 'NovaSeq', 'N', 'M'), 
          temp_Arabinose = toString(format(round(as.numeric(Arabinose), 3), nsmall = 3))
@@ -465,18 +780,108 @@ residue_read_abundances_matched_miseq %<>% rowwise() %>%
   )
 
 
-all_miseq_data <- residue_read_abundances_matched_miseq %>%
+## Remove unneeded columns
+all_miseq_data <- residue_read_abundances_miseq_matched_new %>% ungroup() %>%
   select(Position, WT_Residue, Encoded_residues, ID, Timepoint, Arabinose, TMP, 
          sel_coeff, Sequencer)
 
-colnames(all_novaseq_data)
-colnames(all_miseq_data)
+## Apply the correction
+
+mode_check_new <- all_miseq_data %>% 
+  group_by(Arabinose, Timepoint, TMP, Sequencer, ID) %>%
+  # Positions in the "locations" list are first mode, antimode, second mode
+  summarise(mode2 = normalmixEM(t(sel_coeff))$mu[2])
+
+all_miseq_data_corrected <- left_join(x = all_miseq_data, 
+                                            y = mode_check_new, 
+                                            by = c('Arabinose' = 'Arabinose', 'Timepoint' = 'Timepoint', 
+                                                   'TMP' = 'TMP', 'Sequencer' = 'Sequencer', 
+                                                   'ID' = 'ID'))%>%
+  mutate(sel_coeff_corrected = sel_coeff - mode2)
+
+p <- all_miseq_data_corrected %>% filter(TMP == 10) %>%
+  ggplot(aes(x = sel_coeff_corrected, colour = as.factor(Arabinose))) + 
+  geom_density() +
+  facet_wrap(~ID) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  ggtitle('MiSeq data only, correct number of generations, corrected distributions (normalMixEM)') +
+  labs(colour = 'Arabinose')
+p
+
+#### Join the datasets for both codons and residues
+
+## Codons
+colnames(all_miseq_data_corrected_codon)
+colnames(all_novaseq_data_corrected_codon)
 
 # Average selection coefficients of all replicates
-all_data_all_reps <- bind_rows(all_novaseq_data %>% 
-                                 mutate(Timepoint = as.numeric(Timepoint)),
-                               all_miseq_data %>%
-                                 mutate(Timepoint = as.numeric(Timepoint))
+all_data_all_reps_codon <- bind_rows(all_novaseq_data_corrected_codon %>% 
+                                 mutate(Timepoint = as.numeric(Timepoint), 
+                                        sel_coeff = sel_coeff_corrected, 
+                                        Arabinose = as.character(Arabinose), 
+                                        Residue = Encoded_residues) %>%
+                                 select(-sel_coeff_corrected, -mode2, -Encoded_residues),
+                               all_miseq_data_corrected_codon %>%
+                                 mutate(Timepoint = as.numeric(Timepoint), 
+                                        sel_coeff = sel_coeff_corrected, 
+                                        Arabinose = as.character(Arabinose), 
+                                        Residue = Encoded_residues) %>%
+                                 select(-sel_coeff_corrected, -mode2, -Encoded_residues)
+) %>% ungroup() %>%
+  group_by(Position, WT_Codon, Codon, WT_Residue, Residue, Timepoint, Arabinose, TMP) %>%
+  summarise(mean_sel_coeff = mean(sel_coeff),
+            sd_sel_coeff = sd(sel_coeff),
+            sem_sel_coeff = sd(sel_coeff) / sqrt(n()), 
+            num_samples = n())
+
+
+## Concatenate all the data points
+all_data_all_reps_notavg_codon <- bind_rows(all_novaseq_data_corrected_codon %>%
+                                        mutate(Timepoint = as.numeric(Timepoint), 
+                                               sel_coeff = sel_coeff_corrected, 
+                                               Arabinose = as.character(Arabinose), 
+                                               Residue = Encoded_residues) %>%
+                                        select(-sel_coeff_corrected, -mode2, -Encoded_residues),
+                                      all_miseq_data_corrected_codon %>%
+                                        mutate(Timepoint = as.numeric(Timepoint), 
+                                               sel_coeff = sel_coeff_corrected, 
+                                               Arabinose = as.character(Arabinose), 
+                                               Residue = Encoded_residues) %>%
+                                        select(-sel_coeff_corrected, -mode2, -Encoded_residues)
+)
+
+## Save the data at the codon level
+# Arrange the tables by position
+all_data_all_reps_codon %<>% mutate(Position = as.numeric(Position)) %>%
+  arrange(Position)
+all_data_all_reps_notavg_codon %<>% mutate(Position = as.numeric(Position)) %>%
+  arrange(Position)
+
+
+#### Save the datasets ####
+write.table(x = all_data_all_reps_codon, quote = F, sep = '\t', row.names = F, col.names = T, append = F, 
+            file = 'Data/Complete_datasets/complete_dataset_avgBothSequencers_Codons.txt')
+
+write.table(x = all_data_all_reps_notavg_codon, quote = F, sep = '\t', row.names = F, col.names = T, append = F, 
+            file = 'Data/Complete_datasets/all_data_all_reps_bothSequencers_Codons.txt')
+
+#### Contiue working with the data at the residue level ####
+
+## Codons
+colnames(all_miseq_data_corrected)
+colnames(all_novaseq_data_corrected)
+
+# Average selection coefficients of all replicates
+all_data_all_reps <- bind_rows(all_novaseq_data_corrected %>% 
+                                       mutate(Timepoint = as.numeric(Timepoint), 
+                                              sel_coeff = sel_coeff_corrected, 
+                                              Arabinose = as.character(Arabinose)) %>%
+                                       select(-sel_coeff_corrected, -mode2),
+                                     all_miseq_data_corrected %>%
+                                       mutate(Timepoint = as.numeric(Timepoint), 
+                                              sel_coeff = sel_coeff_corrected, 
+                                              Arabinose = as.character(Arabinose)) %>%
+                                       select(-sel_coeff_corrected, -mode2)
 ) %>% ungroup() %>%
   mutate(Residue = Encoded_residues) %>%
   group_by(Position, WT_Residue, Residue, Timepoint, Arabinose, TMP) %>%
@@ -487,11 +892,24 @@ all_data_all_reps <- bind_rows(all_novaseq_data %>%
 
 
 ## Concatenate all the data points
-all_data_all_reps_notavg <- bind_rows(all_novaseq_data %>%
-                                        mutate(Timepoint = as.numeric(Timepoint)),
-                                      all_miseq_data %>%
-                                        mutate(Timepoint = as.numeric(Timepoint))
+all_data_all_reps_notavg <- bind_rows(all_novaseq_data_corrected %>%
+                                              mutate(Timepoint = as.numeric(Timepoint), 
+                                                     sel_coeff = sel_coeff_corrected, 
+                                                     Arabinose = as.character(Arabinose)) %>%
+                                              select(-sel_coeff_corrected, -mode2),
+                                            all_miseq_data_corrected %>%
+                                              mutate(Timepoint = as.numeric(Timepoint), 
+                                                     sel_coeff = sel_coeff_corrected, 
+                                                     Arabinose = as.character(Arabinose)) %>%
+                                              select(-sel_coeff_corrected, -mode2)
 ) %>% mutate(Residue = Encoded_residues) %>% select(-Encoded_residues)
+
+# Arrange the tables by position
+all_data_all_reps %<>% mutate(Position = as.numeric(Position)) %>%
+  arrange(Position)
+all_data_all_reps_notavg %<>% mutate(Position = as.numeric(Position)) %>%
+  arrange(Position)
+
 
 #### Add the rest of the columns from the other data sources ####
 # Prepare a table of amino acid names
@@ -568,7 +986,7 @@ all_data_mutEffects_Entropy_SASA <- left_join(x = all_data_mutEffects_Entropy, y
                                               by = c('Position' = 'Position'))
 
 # Load matrix of aminoacid indices
-aa_indices <- read_delim(file = 'Data/aminoacid_inidices/002_all_data/all_indices_final_table_propensity.txt', delim = '\t')
+aa_indices <- read_delim(file = 'Data/Aminoacid_indices/002_all_data/all_indices_final_table_propensity.txt', delim = '\t')
 
 ## Left joins to add amino acid indices for WT and mutant codons (two separate tables)
 # Left joins allow us to keep mutations to stop codons
@@ -583,7 +1001,6 @@ all_codon_means_mut_indices <- left_join(x = all_data_mutEffects_Entropy_SASA,
 
 # Get the subtraction to get the final matrix
 change_matrix <- all_codon_means_mut_indices[,19:ncol(all_codon_means_mut_indices)] - all_codon_means_wt_indices[,19:ncol(all_codon_means_wt_indices)]
-# all_codon_means_change_indices <- cbind(all_codon_means_wt_indices[,1:5], change_matrix)
 all_data_complete <- all_codon_means_wt_indices
 all_data_complete[, 19:ncol(all_data_complete)] <- change_matrix
 
@@ -600,5 +1017,8 @@ all_data_complete_notavg <- left_join(x = all_data_all_reps_notavg %>% ungroup()
 #### Save the datasets ####
 write.table(x = all_data_complete, quote = F, sep = '\t', row.names = F, col.names = T, append = F, 
             file = 'Data/Complete_datasets/complete_dataset_avgBothSequencers.txt')
+
 write.table(x = all_data_complete_notavg, quote = F, sep = '\t', row.names = F, col.names = T, append = F, 
             file = 'Data/Complete_datasets/all_data_all_reps_bothSequencers.txt')
+
+

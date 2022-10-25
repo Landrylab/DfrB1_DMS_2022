@@ -1,0 +1,7 @@
+Arabinose	exp_level	mean_fluo
+0	Absent	0
+0.01	Weak	0.28
+0.025	Suboptimal	0.58
+0.05	Near-optimal	1.39
+0.2	Optimal	3.86
+0.4	Above-optimal	4.27

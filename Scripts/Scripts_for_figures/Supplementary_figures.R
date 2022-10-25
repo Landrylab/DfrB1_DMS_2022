@@ -23,12 +23,15 @@ library(growthcurver)
 library(car)
 library(ggrepel)
 library(FDRestimation)
-library(ARTool)
+# library(ARTool)
 library(lemon)
 library(nlme)
 library(lme4)
 library(rlme)
-library(shadowtext)
+
+library(agricolae)
+
+# library(shadowtext)
 theme_set(theme_cowplot()  + 
             theme(panel.background = element_rect(fill = 'white'),
                   plot.background = element_rect(fill = 'white'))
@@ -51,6 +54,7 @@ colnames(aa_three2one) <- c('One-letter', 'Three-letter')
 # Load the complete dataset
 all_data_complete <- read_delim(
   'Data/Complete_datasets/complete_dataset_avgBothSequencers.txt', delim = '\t')
+
 
 #### Figure S1: Growth curves (WT with TMP vs WT without TMP) ####
 
@@ -99,15 +103,15 @@ p_figs1 <- data.od1 %>% ungroup() %>% rowwise() %>%
   mutate(TMP = str_c(TMP, ' \u00B5g/mL', sep = '')) %>%
   mutate(
     TMP = as.factor(TMP),
-    Arabinose = str_c(Arabinose, '% arabinose')
+    Arabinose = str_c(Arabinose, ' % arabinose')
     ) %>%
   filter(Mutant == 'WT') %>%
-  mutate(Arabinose = factor(Arabinose, levels = c('0% arabinose', 
-                                                  '0.01% arabinose',
-                                                  '0.025% arabinose', 
-                                                  '0.05% arabinose',
-                                                  '0.2% arabinose',
-                                                  '0.4% arabinose'))) %>%
+  mutate(Arabinose = factor(Arabinose, levels = c('0 % arabinose', 
+                                                  '0.01 % arabinose',
+                                                  '0.025 % arabinose', 
+                                                  '0.05 % arabinose',
+                                                  '0.2 % arabinose',
+                                                  '0.4 % arabinose'))) %>%
   ggplot(aes(x = time, y = OD, colour = TMP, group = interaction(Mutant, Replicate, TMP))) + 
   facet_wrap(~Arabinose, ncol = 3, scales = 'free') +
   geom_line() +
@@ -124,7 +128,7 @@ p_figs1 <- data.od1 %>% ungroup() %>% rowwise() %>%
         legend.justification = 0.5) +
   guides(size = 'none', linetype = 'none', alpha = 'none') +
   xlab('Time (h)') + ylim(0, 6) +
-  labs(y = expression(bold(OD[600])))
+  labs(y = expression(bolditalic(OD[600])))
 
 # Edit the legend to make the lines stand out more
 p_s1_legend <- get_legend(p_figs1 + geom_line(size = 3) +
@@ -136,10 +140,14 @@ p_figs1_final <- plot_grid(p_s1_legend, p_figs1 + theme(legend.position = 'none'
 
 p_figs1_final
 
-ggsave(plot = p_figs1_final, device = cairo_pdf, width = 21, height = 14, dpi = 300, 
+ggsave(plot = p_figs1_final, device = cairo_pdf, width = 21, height = 14, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS1_growthRecovery_DfrB1.pdf')
+
+
 ggsave(plot = p_figs1_final, device = 'png', width = 21, height = 14, dpi = 300, 
-       filename = 'Figures/2022-05-09_Supp_figures_paper/FigS1_growthRecovery_DfrB1.png')
+       filename = 'Figures/Supplementary_figures/FigS1_growthRecovery_DfrB1.png')
+
+
 
 #### Figure S2: Quality control of the DMS library ####
 
@@ -184,6 +192,16 @@ dms_qc_new <- left_join(x = dms_qc, y = total_by_pos, by = c('Position' = 'Posit
 
 dms_qc <- dms_qc_new %>% mutate(Ratio_deep = Read_count * 100 / read_total) %>%
   mutate(Codon = factor(Codon, levels = codon_order)) 
+
+## Check the proportion of WT in the library
+dms_qc_wt <- dms_qc %>% filter(Codon == WT_codon)
+total_wt <- sum(dms_qc_wt$Read_count)
+total_wt
+
+total_all <- sum(dms_qc$Read_count)
+total_all
+
+total_wt / total_all
 
 # Pivot to accomodate in a table
 data_heatmap_ratiodeep <- dms_qc %>% select(Position, Codon, Ratio_deep) %>%
@@ -241,7 +259,6 @@ column_labels = c('', '', '', '', '5',
 
 # Draw the heatmap
 p_figs2 <- Heatmap(t(data_ratiodeep_matrix), cluster_columns = F, cluster_rows = F, 
-                ## Color ramp for the old normalized scores
                 col = colorRamp2(
                   breaks = seq(0, 4, length.out = 7),
                   colors = viridis::viridis(7)),
@@ -280,14 +297,17 @@ p_figs2
 
 ggsave(grid.grabExpr(draw(p_figs2)), width = 16, height = 14, dpi = 300, device = cairo_pdf, 
        filename = 'Figures/Supplementary_figures/FigS2.heatmap_quality_control.pdf')
+
 ggsave(grid.grabExpr(draw(p_figs2)), width = 16, height = 14, dpi = 300, device = 'png', 
        filename = 'Figures/Supplementary_figures/FigS2.heatmap_quality_control.png')
+
 
 #### Figure S3 was generated using BioRender ####
 
 #### Figure S4: Heatmaps of correlation between replicates (TMP) ####
 
-all_data_all_reps <- read_delim('Data/Complete_datasets/all_data_all_reps_bothSequencers.txt', 
+all_data_all_reps <- read_delim( 
+  'Data/Complete_datasets/all_data_all_reps_bothSequencers.txt', 
                                 delim = '\t')
 
 all_data_all_reps_corr_TMP10 <- all_data_all_reps %>% rowwise() %>%
@@ -296,10 +316,23 @@ all_data_all_reps_corr_TMP10 <- all_data_all_reps %>% rowwise() %>%
   group_by(Genotype) %>%
   filter(TMP == 10, Timepoint == 10)
 
-cor_matrix <- all_data_all_reps_corr_TMP10  %>% ungroup() %>%
+cor_matrix_data <- all_data_all_reps_corr_TMP10  %>% ungroup() %>%
   select(-Timepoint, -Arabinose, -TMP, -Sequencer) %>%
   pivot_wider(names_from = ID, values_from = sel_coeff) %>%
-  select(-Genotype) %>% cor(method = 'spearman')
+  select(-Genotype)
+
+## Remove NAs
+lines_remove <- c()
+## Remove lines that have NAs
+for(i in 1:nrow(cor_matrix_data)){
+  if(any(is.na(cor_matrix_data[i,]))){
+    lines_remove <- c(lines_remove, i)
+  }
+}
+
+cor_matrix_data <- cor_matrix_data[-lines_remove, ]
+
+cor_matrix <- cor_matrix_data %>% cor(method = 'spearman')
 
 annotation_df <- all_data_all_reps_corr_TMP10 %>% ungroup() %>%
   select(-Genotype, -sel_coeff) %>%
@@ -309,41 +342,41 @@ annotation_df <- all_data_all_reps_corr_TMP10 %>% ungroup() %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal',
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', NA)))))) %>%
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal', NA)))))) %>%
   mutate(exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal',
-                                                  'Optimal', 'Overexpressed')))
+                                                  'Optimal', 'Above-optimal')))
 
-ha_corr <- HeatmapAnnotation(`Expression level` = annotation_df$exp_level,
+ha_corr <- HeatmapAnnotation(`Promoter activity` = annotation_df$exp_level,
                              show_annotation_name = F,
                              annotation_name_gp = gpar(fontface = 'bold', fontsize = 14),
                              annotation_name_side = 'left',
                              show_legend = TRUE,
                              annotation_legend_param = list(
-                               `Expression level` = list(
+                               `Promoter activity` = list(
                                  title_gp = gpar(fontsize = 22, fontface = 'bold'), 
                                  labels_gp = gpar(fontsize = 20)
                                )
                              ),
-                             col = list(`Expression level` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
+                             col = list(`Promoter activity` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
                                                                "Near-optimal" = "#bd0026", "Optimal" = "#80001a", 
-                                                               'Overexpressed' = 'black')),
+                                                               'Above-optimal' = 'black')),
                              gp = gpar(col = "black")
 )
 
-ha_corr2 <- HeatmapAnnotation(`Expression level` = annotation_df$exp_level,
+ha_corr2 <- HeatmapAnnotation(`Promoter activity` = annotation_df$exp_level,
                               which = 'row',
                              show_annotation_name = F,
                              annotation_name_gp = gpar(fontface = 'bold', fontsize = 14),
                              show_legend = FALSE,
                              annotation_legend_param = list(
-                               `Expression level` = list(
+                               `Promoter activity` = list(
                                  title_gp = gpar(fontsize = 22, fontface = 'bold'), 
                                  labels_gp = gpar(fontsize = 20)
                                )
                              ),
-                             col = list(`Expression level` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
+                             col = list(`Promoter activity` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
                                                                "Near-optimal" = "#bd0026", "Optimal" = "#80001a", 
-                                                               'Overexpressed' = 'black')),
+                                                               'Above-optimal' = 'black')),
                              gp = gpar(col = "black")
 )
 
@@ -352,7 +385,6 @@ ha_corr2 <- HeatmapAnnotation(`Expression level` = annotation_df$exp_level,
 p_figs4 <- Heatmap(cor_matrix, cluster_columns = T, cluster_rows = T, 
              clustering_distance_rows = 'pearson',
              clustering_distance_columns = 'pearson',
-             ## Color ramp for the old normalized scores
              col = colorRamp2(
                breaks = seq(0.5, 1, length.out = 7),
                colors = c("#2166AC", "#4393C3", "#92C5DE", "#D1E5F0", "#F7F7F7", "#F4A582", "#D6604D")),
@@ -388,9 +420,10 @@ p_figs4 <- Heatmap(cor_matrix, cluster_columns = T, cluster_rows = T,
              )
 )
 p_figs4
-ggsave(grid.grabExpr(draw(p_figs4)), width = 18, height = 17, dpi = 300, device = cairo_pdf, 
+ggsave(grid.grabExpr(draw(p_figs4)), width = 18, height = 17, dpi = 300, device = cairo_pdf,
        filename = 'Figures/Supplementary_figures/FigS4.heatmap_corr_samples_TMP.pdf')
-ggsave(grid.grabExpr(draw(p_figs4)), width = 18, height = 17, dpi = 300, device = 'png', 
+
+ggsave(grid.grabExpr(draw(p_figs4)), width = 18, height = 17, dpi = 300, device = 'png',
        filename = 'Figures/Supplementary_figures/FigS4.heatmap_corr_samples_TMP.png')
 
 #### Figure S5: Ranks of Dam and Strader mutants ####
@@ -403,7 +436,7 @@ data_figs5 <- all_data_complete %>% ungroup() %>%
                             ifelse(Arabinose == 0.05, 'Near-optimal',
                                    ifelse(Arabinose == 0.025, 'Suboptimal', 
                                           ifelse(Arabinose == 0.01, 'Weak',
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed',
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal',
                                                         'Absent'))))))
 
 # Load data from Dam 2000
@@ -490,6 +523,7 @@ p_figs5 <- plot_grid(p_figs5a, p_figs5b, nrow = 2, labels = c('A', 'B'),
 
 ggsave(plot = p_figs5, device = cairo_pdf, width = 10, height = 14, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS5_mutants_literature_ranks.pdf')
+
 ggsave(plot = p_figs5, device = 'png', width = 10, height = 14, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS5_mutants_literature_ranks.png')
 
@@ -512,17 +546,39 @@ data_fig_dam2000_new <- data_fig_dam2000 %>% ungroup() %>% group_by(Position, WT
   pivot_wider(names_from = exp_level, values_from = mean_sel_coeff) %>%
   mutate(diffNormScore = Weak - Optimal)
 
-p_dam2000_newfig <- data_fig_dam2000_new %>% rowwise() %>%
+data_fig_strader2001_new <- data_fig_strader2001 %>% ungroup() %>% group_by(Position, WT_Residue, Residue) %>%
+  select(-Arabinose) %>%
+  filter(exp_level %in% c('Weak', 'Optimal')) %>%
+  pivot_wider(names_from = exp_level, values_from = mean_sel_coeff) %>%
+  mutate(diffNormScore = Weak - Optimal)
+
+
+p_dam2000_newfig <- data_fig_dam2000_new %>% rowwise() %>% ungroup() %>%
   mutate(ID = str_c(WT_Residue, Position, Residue, sep = '')) %>%
-  ggplot(aes(x = Pct_activity, y = diffNormScore, label = ID)) + 
+  ggplot(aes(x = Optimal, y = Weak, label = ID, 
+             colour = Pct_activity)) + 
   geom_point() +
   geom_label_repel(fontface = 'bold', max.overlaps = Inf, show.legend = F, 
                    box.padding = 0.6, direction = 'both', size = 4) +
-  xlab('% activity relative to WT [Dam, 2000]') + 
-  labs(y = expression(paste(bold('\u0394'), bolditalic(s[weak]),
-                            bold(' ('), bolditalic(s[weak] - s[opt]), bold(')'), 
-                            sep = ''))
-       ) +
+  scale_colour_continuous(trans = 'log10',
+                          breaks = trans_breaks("log10", function(x) 10^x),
+                          labels = trans_format("log10", math_format(10^.x)),
+                          type = 'viridis') +
+  # scale_fill_gradient2(trans = 'log10', 
+  #                         breaks = trans_breaks("log10", function(x) 10^x),
+  #                         labels = trans_format("log10", math_format(10^.x)), 
+  #                         # low = '#e5f5f9', high = '#2ca25f', mid = '#99d8c9', 
+  #                      midpoint = 10^(-1.25), ) +
+  
+  # xlab('% activity relative to WT [Dam, 2000]') + 
+  # labs(y = expression(paste(bold('\u0394'), bolditalic(s[weak]),
+  #                           bold(' ('), bolditalic(s[weak] - s[opt]), bold(')'), 
+  #                           sep = ''))
+  # ) +
+  labs(x = expression(paste(bolditalic(s[opt]))), 
+       y = expression(paste(bolditalic(s[weak]))), 
+       # colour = 'Activity relative to WT (%)', 
+       colour = 'Activity relative to WT (%)') +
   theme(panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
         panel.grid.minor = element_blank(), 
         axis.title.x = element_text(face = 'bold', size = 20), 
@@ -531,10 +587,13 @@ p_dam2000_newfig <- data_fig_dam2000_new %>% rowwise() %>%
         legend.position = 'top', 
         legend.justification = 0.5, 
         legend.title = element_text(size = 20), 
-        legend.text = element_text(size = 18)
+        legend.text = element_text(size = 18), 
+        legend.key.width = unit(1.75, 'cm')
   ) +
-  ylim(-0.4, 0.4)
+  geom_abline(slope = 1, intercept = 0, linetype = 'dashed') +
+  xlim(-0.90, 0.4) + ylim(-0.90, 0.4)
 p_dam2000_newfig
+
 
 data_fig_strader2001_new <- data_fig_strader2001 %>% ungroup() %>% group_by(Position, WT_Residue, Residue) %>%
   select(-Arabinose) %>%
@@ -544,17 +603,24 @@ data_fig_strader2001_new <- data_fig_strader2001 %>% ungroup() %>% group_by(Posi
 
 p_strader2001_newfig <- data_fig_strader2001_new %>% rowwise() %>%
   mutate(ID = str_c(WT_Residue, Position, Residue, sep = '')) %>%
-  ggplot(aes(x = `kcat/km`, y = diffNormScore, label = ID)) + 
+  ggplot(aes(x = Optimal, y = Weak, label = ID, colour = `kcat/km`)) + 
   geom_point() +
   geom_label_repel(fontface = 'bold', max.overlaps = Inf, show.legend = F, 
                    box.padding = 0.4, direction = 'both', size = 4) +
-  labs(y = expression(paste(bold('\u0394'), bolditalic(s[weak]),
-                            bold(' ('), bolditalic(s[weak] - s[opt]), bold(')'), 
-                            sep = '')), 
-       x = expression(paste(bold('Catalytic efficiency ('), 
-                            bolditalic(k[cat] / K[m]), 
-                            bold(') [Strader, 2001]'), sep = ''))
-  ) +
+  scale_colour_continuous(trans = 'log10', 
+                          breaks = trans_breaks("log10", function(x) 10^x),
+                          labels = trans_format("log10", math_format(10^.x)), 
+                          type = 'viridis') +
+  # labs(y = expression(paste(bold('\u0394'), bolditalic(s[weak]),
+  #                           bold(' ('), bolditalic(s[weak] - s[opt]), bold(')'), 
+  #                           sep = '')), 
+  #      x = expression(paste(bold('Catalytic efficiency ('), 
+  #                           bolditalic(k[cat] / K[M]), 
+  #                           bold(') [Strader, 2001]'), sep = ''))
+  # ) +
+  labs(x = expression(paste(bolditalic(s[opt]))), 
+       y = expression(paste(bolditalic(s[weak]))), 
+       colour = 'Catalytic efficiency (%)') +
   theme(panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
         panel.grid.minor = element_blank(), 
         axis.title.x = element_text(face = 'bold', size = 20), 
@@ -563,16 +629,23 @@ p_strader2001_newfig <- data_fig_strader2001_new %>% rowwise() %>%
         legend.position = 'top', 
         legend.justification = 0.5, 
         legend.title = element_text(size = 20), 
-        legend.text = element_text(size = 18)
-  ) + ylim(-0.4, 0.4)
+        legend.text = element_text(size = 18), 
+        legend.key.width = unit(1.75, 'cm')
+        
+  ) +
+  geom_abline(slope = 1, intercept = 0, linetype = 'dashed') +
+  xlim(-0.90, 0.4) + ylim(-0.90, 0.4)
 p_strader2001_newfig
 
-p_figs6 <- plot_grid(p_dam2000_newfig + theme(legend.position = 'none'), 
+p_figs6 <- plot_grid(p_dam2000_newfig, 
                      p_strader2001_newfig, nrow = 2, labels = c('A', 'B'), 
                      label_size = 20, label_fontface = 'bold')
-ggsave(plot = p_figs6, device = cairo_pdf, width = 8, height = 10, dpi = 300, 
+ggsave(plot = p_figs6, device = cairo_pdf, width = 9, height = 10, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS6_mutants_literature_exp_level_newAxis.pdf')
-ggsave(plot = p_figs6, device = 'png', width = 8, height = 10, dpi = 300, 
+
+
+
+ggsave(plot = p_figs6, device = 'png', width = 9, height = 10, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS6_mutants_literature_exp_level_newAxis.png')
 
 #### Figure S7: Validations and the DMS scores are correlated ####
@@ -676,7 +749,7 @@ p_figS7a <- joined_sets %>% ungroup() %>% rowwise() %>%
                             bolditalic('AUC'), 
                             bold(')'), sep = '')), 
        x = expression(bolditalic(s))) +
-  labs(colour = 'Expression level') +
+  labs(colour = 'Promoter activity') +
   theme(axis.title = element_text(face = 'bold', size = 20), 
         axis.text = element_text(size = 18), 
         legend.text = element_text(size = 18), 
@@ -688,21 +761,106 @@ p_figS7a <- joined_sets %>% ungroup() %>% rowwise() %>%
         panel.background = element_rect(fill = 'white'))
 p_figS7a
 
+#### New version of figure S7A that uses growth recovery ####
+## Change to wide data frame to compare versus data without TMP
+data.od1.new.wide <- data.od1.new %>% select(ID, TMP, auc_e) %>%
+  pivot_wider(names_from = 'TMP', values_from = 'auc_e', names_prefix = 'TMP_')
+
+## Calculate percentage of growth recovery (g = 100 * (g_TMP_ara / g_noTMP_ara))
+data.od1.new.wide %<>% mutate(pct_recovery = 100*(TMP_10 / TMP_0)) %>%
+  rowwise() %>%
+  separate(col = 'ID', into = c('Mutation', 'Arabinose'), sep = '_') %>%
+  mutate(Mutation = ifelse(Mutation == 'WT', '2EE', Mutation)) %>%
+  separate(col = 'Mutation', into = c('Position', 'WT_Residue', 'Residue'), sep = c(-2, -1)) %>%
+  mutate(mut_name = ifelse(WT_Residue == Residue, 'WT', 
+                           str_c(WT_Residue, Position, Residue)))
+
+all_data_complete_new <- all_data_complete %>% filter(TMP == 10, Timepoint == 10) %>%
+  select(Position, WT_Residue, Residue, mean_sel_coeff, sem_sel_coeff, Arabinose)
+
+# Recalculate the selection coefficient and the standard error for the WT
+wt_sel_coeff <- all_data_complete_new %>% ungroup() %>% 
+  filter(WT_Residue == Residue) %>%
+  select(-WT_Residue, -Residue, -Position) %>%
+  group_by(Arabinose) %>% 
+  summarise(mean_sel_coeff2 = mean(mean_sel_coeff), 
+            sem_sel_coeff2 = sd(mean_sel_coeff) / sqrt(n()), 
+            num_mut = n())
+
+# Join the data
+joined_sets <- inner_join(x = all_data_complete_new, 
+                          y = data.od1.new.wide %>% 
+                            mutate(Position = as.numeric(Position), 
+                                   Arabinose = as.numeric(Arabinose)),
+                          by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 
+                                 'Residue' = 'Residue', 'Arabinose' = 'Arabinose'))
+
+# Add the correct mean and standard error for the WT
+joined_sets_new <- left_join(x = joined_sets, y = wt_sel_coeff, 
+                             by = c('Arabinose' = 'Arabinose'))
+
+joined_sets_new %<>% 
+  mutate(mean_sel_coeff = ifelse(WT_Residue == Residue, mean_sel_coeff2, mean_sel_coeff), 
+         sem_sel_coeff = ifelse(WT_Residue == Residue, sem_sel_coeff2, sem_sel_coeff)
+         )
+
+joined_sets_new %<>%
+  mutate(Arabinose = factor(Arabinose, levels = c(0.01, 0.2))) %>%
+  mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak', ifelse(Arabinose == 0.2, 'Optimal', NA))
+                        )
+
+
+
+## Redraw the figure
+p_figS7a <- joined_sets_new %>% ungroup() %>% rowwise() %>%
+  mutate(exp_level = factor(exp_level, levels = c('Weak', 'Optimal'))) %>%
+  ggplot(aes(x = mean_sel_coeff, y = pct_recovery)) +
+  geom_smooth(method = 'lm', alpha = 0.5) +
+  stat_cor(p.accuracy = 0.001, r.accuracy = 0.01, label.x.npc = 0.7, size = 6,
+           label.y.npc = 0.15, method = 'spearman', cor.coef.name = 'rho'
+  ) +
+  geom_point(aes(colour = exp_level), size = 2) +
+  geom_errorbarh(aes(xmax = mean_sel_coeff + sem_sel_coeff, xmin = mean_sel_coeff - sem_sel_coeff, 
+                     colour = exp_level)) +
+  geom_label_repel(aes(colour = exp_level, label = mut_name), 
+                   fontface = 'bold', 
+                   fill = '#999999',
+                   max.overlaps = Inf, show.legend = F, alpha = 1,
+                   size = 5
+  ) +
+  scale_colour_manual(values = c('#fed976', '#80001A')) + 
+  labs(y = 'Growth recovery (%)', 
+       x = expression(bolditalic(s))) +
+  labs(colour = 'Promoter activity') +
+  theme(axis.title = element_text(face = 'bold', size = 20), 
+        axis.text = element_text(size = 18), 
+        legend.text = element_text(size = 18), 
+        legend.title = element_text(size = 20),
+        legend.position = 'top', 
+        legend.justification = 0.5, 
+        panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
+        panel.grid.minor = element_blank(), 
+        panel.background = element_rect(fill = 'white'))
+p_figS7a
+
+
 #### Figure S7B: Boxplots showing differences in fitness effects ####
 
-joined_sets %<>% rowwise() %>% mutate(mut_id = str_c(Position, Residue, sep = '')) %>%
+joined_sets_new %<>% rowwise() %>% mutate(mut_id = str_c(Position, Residue, sep = '')) %>%
   mutate(WT_check = (WT_Residue == Residue))
 
-comps <- compare_means(auc_e~exp_level, data = joined_sets, paired = TRUE) %>%
+comps <- compare_means(pct_recovery~exp_level, data = joined_sets_new, paired = TRUE) %>%
   mutate(p.format = ifelse(p < 2.2e-16, 'p < 2.2e-16', 
                            sprintf("p = %2.1e", as.numeric(p))
   ),
-  y_pos = c(57)
+  y_pos = c(105)
   )
 
-p_figS7b <- joined_sets %>% ungroup() %>%
+p_figS7b <-
+  joined_sets_new %>%
+  ungroup() %>%
   mutate(exp_level = factor(exp_level, levels = c('Weak', 'Optimal'))) %>%
-  ggplot(aes(x = exp_level, y = auc_e, fill = exp_level)) +
+  ggplot(aes(x = exp_level, y = pct_recovery, fill = exp_level)) +
   geom_boxplot() + 
   geom_point(aes(colour = WT_check, size = WT_check)) + 
   geom_line(aes(group = mut_id, colour = WT_check)) +
@@ -713,7 +871,7 @@ p_figS7b <- joined_sets %>% ungroup() %>%
   geom_signif(data = as.data.frame(comps),
               inherit.aes = FALSE, aes(xmin = group1, xmax = group2,
                                        annotations=p.format, y_position = y_pos), 
-              manual = TRUE, textsize = 7) +
+              manual = TRUE, textsize = 7, tip_length = 0.02) +
   theme(axis.title = element_text(face = 'bold', size = 20), 
         axis.text = element_text(size = 18), 
         legend.text = element_text(size = 18), 
@@ -721,22 +879,23 @@ p_figS7b <- joined_sets %>% ungroup() %>%
         legend.position = 'none', 
         legend.justification = 0.5, 
         panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-        panel.grid.minor = element_blank()) + 
-  labs(y = expression(paste(bold('Growth in liquid culture ('), 
-                            bolditalic('AUC'), 
-                            bold(')'), sep = ''))) +
-  xlab('Expression level')
+        panel.grid.minor = element_blank()) +
+  labs(y = 'Growth recovery (%)') +
+  xlab('Promoter activity')
 p_figS7b
 
 # Plot them together
 p_figS7 <- plot_grid(p_figS7a, p_figS7b, labels = c('A', 'B'), 
                      label_size = 20, label_fontface = 'bold', ncol = 2)
 
-ggsave(plot = p_figS7, device = cairo_pdf, width = 16, height = 8, dpi = 300, 
+ggsave(plot = p_figS7, device = cairo_pdf, width = 16, height = 8, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS7_validations.pdf')
-ggsave(plot = p_figS7, device = png, width = 16, height = 8, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS7_validations.png')
 
+
+       
+
+ggsave(plot = p_figS7, device = png, width = 16, height = 8, dpi = 300,
+       filename = 'Figures/Supplementary_figures/FigS7_validations.png')
 
 #### Figure S8: Volcano plots from ANOVAs, mean deltaS per position ####
 
@@ -755,16 +914,15 @@ data_fig2c_exp <- data_fig2c %>%
                                    ifelse(Arabinose == 0.025, 'Suboptimal', 
                                           ifelse(Arabinose == 0.05, 'Near-optimal', 
                                                  ifelse(Arabinose == 0.2, 'Optimal', 
-                                                        ifelse(Arabinose == 0.4, 'Overexpressed', NA)))))) %>%
+                                                        ifelse(Arabinose == 0.4, 'Above-optimal', NA)))))) %>%
   mutate(Expression_level = factor(Expression_level,
                                    levels = c('Weak', 'Suboptimal',
-                                              'Near-optimal', 'Optimal', 'Overexpressed')))
+                                              'Near-optimal', 'Optimal', 'Above-optimal')))
 
 ## Draw the figure
 p_figs8a <- data_fig2c_exp %>% 
   ggplot(aes(x = Expression_level, y = meanSelCoeff, fill = Expression_level)) +
   geom_violin(alpha = 0.8) +
-  stat_summary(fun="median", geom="point", size = 5) +
   geom_point() +
   geom_line(aes(group = Position)) +
   scale_fill_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black')) +
@@ -776,7 +934,12 @@ p_figs8a <- data_fig2c_exp %>%
         legend.text = element_text(size = 20),
         legend.title = element_text(size = 20),
         legend.justification = 0.5) +
-  xlab('Expression level') + 
+  xlab('Promoter activity') + 
+  stat_summary(fun="median", geom="point", size = 5, 
+               # colour = 'black'
+               colour = 'blue') +
+  stat_summary(fun="median", geom="point", size = 5, 
+               colour = 'white', shape = 4) +
   labs(y = expression(paste(bold('Mean '), bolditalic('s'), bold(' per position'), sep = '')))
 p_figs8a
 
@@ -819,10 +982,11 @@ data_fig2b_exp <- data_fig2b %>% separate(col = Arabinose_2, into = c('Arabinose
                             ifelse(Arabinose_num == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose_num == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose_num == 0.2, 'Optimal',
-                                                 ifelse(Arabinose_num == 0.4, 'Overexpressed', NA))))))
+                                                 ifelse(Arabinose_num == 0.4, 'Above-optimal', NA))))))
 
 # Load data for all replicates from both sequencers
-all_data_all_reps <- read_delim('Data/Complete_datasets/all_data_all_reps_bothSequencers.txt', 
+all_data_all_reps <- read_delim(
+  'Data/Complete_datasets/all_data_all_reps_bothSequencers.txt', 
                                 delim = '\t')
 
 all_data_all_reps_TMP10 <- all_data_all_reps %>% rowwise() %>%
@@ -843,26 +1007,31 @@ for(genotype in genotypes){
            ID = as.factor(ID)) %>% group_by(Arabinose) %>%
     mutate(Replicate = as.factor(row_number()))
   
-  m <- aov(sel_coeff ~ Arabinose, data=data_genotype)
-  anova_test <- anova(m)
-  
-  # Save values from the ANOVA
-  df_arabinose <- anova_test$Df[1]
-  df_residuals <- anova_test$Df[2]
-  
-  sum_sq_arabinose <- anova_test$`Sum Sq`[1]
-  sum_sq_residuals <- anova_test$`Sum Sq`[2]
-  
-  mean_sq_arabinose <- anova_test$`Mean Sq`[1]
-  mean_sq_residuals <- anova_test$`Mean Sq`[2]
-  
-  f_value <- anova_test$`F value`[1]
-  p_value <- anova_test$`Pr(>F)`[1]
-  
-  new_row <- data.frame(Genotype = c(genotype), df_arabinose = c(df_arabinose), df_residuals = c(df_residuals),
-                        sum_sq_arabinose = c(sum_sq_arabinose), sum_sq_residuals = c(sum_sq_residuals),
-                        f_value = c(f_value), p_val = c(p_value))
-  all_anovas <- bind_rows(all_anovas, new_row)
+  ## Remove rows that have NAs
+  if(and(all(!(is.na(data_genotype$sel_coeff))), # Make sure there are no NAs
+        length(unique(data_genotype$Arabinose)) == 5) # Make sure they are represented at all expression levels
+      ){
+    m <- aov(sel_coeff ~ Arabinose, data=data_genotype)
+    anova_test <- anova(m)
+    
+    # Save values from the ANOVA
+    df_arabinose <- anova_test$Df[1]
+    df_residuals <- anova_test$Df[2]
+    
+    sum_sq_arabinose <- anova_test$`Sum Sq`[1]
+    sum_sq_residuals <- anova_test$`Sum Sq`[2]
+    
+    mean_sq_arabinose <- anova_test$`Mean Sq`[1]
+    mean_sq_residuals <- anova_test$`Mean Sq`[2]
+    
+    f_value <- anova_test$`F value`[1]
+    p_value <- anova_test$`Pr(>F)`[1]
+    
+    new_row <- data.frame(Genotype = c(genotype), df_arabinose = c(df_arabinose), df_residuals = c(df_residuals),
+                          sum_sq_arabinose = c(sum_sq_arabinose), sum_sq_residuals = c(sum_sq_residuals),
+                          f_value = c(f_value), p_val = c(p_value))
+    all_anovas <- bind_rows(all_anovas, new_row)
+  }
 }
 
 ## Apply the Benjamini-Hochberg correction for multiple hypotheses
@@ -892,7 +1061,34 @@ score_significant <- left_join(x = data_fig2b_exp %>% filter(Arabinose_num == 0.
 
 table(score_diff$mut_check_diff)
 table(score_significant$mut_check)
-table(score_diff$mut_check_diff, score_significant$mut_check)
+
+score_significant %<>% mutate(mut_check_diff = ifelse(abs(diffNormScore) > 0.1, TRUE, FALSE))
+table(score_significant$mut_check_diff, score_significant$mut_check)
+
+# Check number of positions involved in the 542 mutations
+signif_mutations <- score_significant %>% filter(mut_check_diff, mut_check)
+signif_positions <- score_significant %>% ungroup() %>%
+  group_by(Position) %>%
+  filter(mut_check_diff, mut_check) %>%
+  select(Position) %>%
+  summarise(signif_mut_count = n()) %>%
+  mutate(Position = as.numeric(Position))
+
+# Add the positions that have zero mutations with significant expression-dependent effects
+for(i in 2:78){
+  if(!(i %in% signif_positions$Position)){
+    tmp_df <- as.data.frame(t(c(i, 0)))
+    colnames(tmp_df) <- c('Position', 'signif_mut_count')
+    
+    signif_positions <- bind_rows(signif_positions, 
+                                  tmp_df)
+  }
+}
+
+signif_positions %<>% arrange(Position)
+write.table(signif_positions, append = F, quote = F, sep = '\t', row.names = F, col.names = T, 
+            file = 'Data/positions_signif_mutations.tsv')
+
 
 # Join the data to add these marks
 data_fig2d <- left_join(x = temp_data, 
@@ -906,7 +1102,7 @@ data_fig2d_exp <- data_fig2d %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal',
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', 
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal', 
                                                         NA))))))
 
 # Add the data about the minimum change in expression
@@ -925,12 +1121,25 @@ p_figs8b <- data_fig2d_exp %>%
   geom_vline(xintercept = 0.1, linetype = 'dashed') +
   geom_hline(yintercept = -log10(0.05), linetype = 'dashed') +
   labs(
-    x = expression(paste(bold('\u0394'), bolditalic(s[weak]),
-                     bold(' ('), bolditalic(s[weak] - s[opt]), bold(')'), 
-                     sep = '')),
+    # x = expression(paste(bold('\u0394'), bolditalic(s[weak]),
+    #                  bold(' ('), bolditalic(s[weak] - s[opt]), bold(')'), 
+    #                  sep = '')),
+    x = expression(paste(bold('Difference between '), bolditalic(s[weak]), 
+                         bold(' and '), bolditalic(s[opt]), sep = '')),
        y = expression(paste(bold('-log10('), 
                             bolditalic('p.adj'), 
-                            bold(')'), sep = ''))) +
+                            bold(')'), 
+                            sep = '')
+                      )
+    ) +
+  annotate('text', y = 2.5, x = 0.15, hjust = 0,
+           label = expression(paste(italic(s[weak]), ' > ',
+                                    italic(s[opt]), sep = '')),
+           parse = T, size = 7) +
+  annotate('text', y = 2.5, x = -0.7, hjust = 0,
+           label = expression(paste(italic(s[weak]), ' < ',
+                                    italic(s[opt]), sep = '')),
+           parse = T, size = 7) +
   theme(axis.title.y = element_text(size = 20, face = 'bold'), 
         axis.title.x = element_text(size = 22, face = 'bold'),
         axis.text = element_text(size = 18), 
@@ -938,14 +1147,15 @@ p_figs8b <- data_fig2d_exp %>%
 p_figs8b  
 
 ## Save Table S4 with the results of the ANOVAs 
-# write.table(x = all_anovas, append = F, quote = F, sep = '\t', row.names = F, col.names = T,
-#             file = 'Figures/Supplementary_figures/TableS4.ANOVA_individual_mutants.csv')
+write.table(x = all_anovas, append = F, quote = F, sep = '\t', row.names = F, col.names = T,
+            file = 'Figures/Supplementary_figures/TableS4.ANOVA_individual_mutants.csv')
 
 p_figs8 <- plot_grid(p_figs8a, p_figs8b, ncol = 2, labels = c('A', 'B'), label_size = 20, 
           label_fontface = 'bold')
 p_figs8
 ggsave(p_figs8, device = cairo_pdf, width = 20, height = 10, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS8.volcano_plot_signif_mutants.pdf')
+
 ggsave(p_figs8, device = 'png', width = 20, height = 10, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS8.volcano_plot_signif_mutants.png')
 
@@ -964,8 +1174,8 @@ anova_general_table <- data.frame(anova_general) %>%
   mutate(Pr..F. = ifelse(Pr..F. == 0, '<2.2e-16', Pr..F.))
 
 ## Save Table S6 with the results of the ANOVA on ranks
-# write.table(x = anova_general_table, append = F, quote = F, sep = '\t', row.names = F, col.names = T,
-#             file = 'Figures/Supplementary_figures/TableS6.ANOVA_general.csv')
+write.table(x = anova_general_table, append = F, quote = F, sep = '\t', row.names = F, col.names = T,
+            file = 'Figures/Supplementary_figures/TableS6.ANOVA_general.csv')
 
 #### Fig. S9: k-means clustering ####
 
@@ -981,7 +1191,7 @@ data_fig1f_exp <- data_fig1f %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal', 
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', 
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal', 
                                                         NA))))))
 
 # Add the data about the minimum change in expression
@@ -1000,6 +1210,17 @@ data_fig1f_wide <- data_fig1f_exp %>% ungroup() %>%
 wt_row <- data_fig1f_wide %>% filter(WT_Residue == Residue, Position == 2)
 data_kmeans <- bind_rows(data_fig1f_wide %>% filter(WT_Residue != Residue), 
                          wt_row)
+
+lines_remove <- c()
+## Remove lines that have NAs
+for(i in 1:nrow(data_kmeans)){
+  if(any(is.na(data_kmeans[i,]))){
+    lines_remove <- c(lines_remove, i)
+  }
+}
+
+data_kmeans <- data_kmeans[-lines_remove, ]
+
 
 set.seed(100)
 
@@ -1055,15 +1276,29 @@ temp_clusters %<>% as.data.frame() %>% mutate(old_cluster = row_number())
 
 cluster_relabel <- temp_clusters %>% arrange(Weak) %>% mutate(new_cluster = row_number())
 
+# Check number of mutations in each cluster
+data_fig1f_new <- data_kmeans %>% ungroup() %>% 
+  mutate(cluster = kmeans_fitness$cluster)
+data_fig1f_new <- left_join(x = data_fig1f_new, 
+                            y = cluster_relabel %>% ungroup() %>%
+                              select(old_cluster, new_cluster), 
+                            by = c('cluster' = 'old_cluster')
+) %>%
+  mutate(cluster = new_cluster) %>% select(-new_cluster)
+
+table(data_fig1f_new$cluster)
+stop_check <- data_fig1f_new %>% filter(Residue == '*')
+table(stop_check$cluster)
+
 #### Draw Fig. S9B ####
 
 cluster_relabel_new <- cluster_relabel %>% select(-old_cluster) %>%
-  pivot_longer(cols = c('Weak', 'Suboptimal', 'Near-optimal', 'Optimal', 'Overexpressed'), 
+  pivot_longer(cols = c('Weak', 'Suboptimal', 'Near-optimal', 'Optimal', 'Above-optimal'), 
                names_to = 'exp_level', values_to = 'mean_sel_coeff')
 
 p_figS9B <- cluster_relabel_new %>% 
   mutate(exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal', 
-                                                  'Optimal', 'Overexpressed'))) %>%
+                                                  'Optimal', 'Above-optimal'))) %>%
   ggplot(aes(x = exp_level, y = mean_sel_coeff, colour = as.factor(new_cluster))) +
   geom_point(size = 3) +
   geom_line(aes(group = as.factor(new_cluster)), size = 2) +
@@ -1076,9 +1311,12 @@ p_figS9B <- cluster_relabel_new %>%
         legend.justification = 0.5,
         panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
         panel.grid.minor = element_blank()) +
-  xlab('Expression level') +
+  xlab('Promoter activity') +
   labs(colour = 'Cluster', y = expression(bolditalic(s)))
 p_figS9B
+
+cluster_relabel_new_wide <- cluster_relabel_new %>%
+  pivot_wider(names_from = exp_level, values_from = mean_sel_coeff)
 
 ## Prepare the data for Fig. S9C
 
@@ -1088,7 +1326,7 @@ data_interfaces_final <- read_delim('Data/data_annotation_2.txt', delim = '\t')
 data_fig1f_new <- data_kmeans %>% ungroup() %>% 
   mutate(cluster = kmeans_fitness$cluster) %>%
   pivot_longer(cols = c('Weak', 'Suboptimal', 'Near-optimal', 
-                        'Optimal', 'Overexpressed'), names_to = 'exp_level', 
+                        'Optimal', 'Above-optimal'), names_to = 'exp_level', 
                values_to = 'mean_sel_coeff')
 
 data_fig1f_new <- left_join(x = data_fig1f_new, 
@@ -1114,6 +1352,13 @@ data_fig1f_new_summ <- left_join(x = data_fig1f_new_summ,
 
 #### Run chi square tests with contingency tables for one protein site at a time ####
 
+# Remove WT and stop codons
+data_fig1f_new_summ %<>%
+  filter(Residue != '*', Residue != WT_Residue)
+
+## A varible of rowwise p-values
+rowwise_pvals <- c()
+
 ## Only for the dimerization interface
 data_fig1f_new_dim_int <- data_fig1f_new_summ  %>% 
   pivot_longer(cols = c('A,C', 'A,D', 'DHF', 'NADPH',
@@ -1128,8 +1373,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-dim_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+dim_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the tetramerization interface
 data_fig1f_new_tet <- data_fig1f_new_summ  %>% 
@@ -1145,8 +1392,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-tet_log2fold <- log2((chisq$observed + 1)/ chisq$expected)[2,]
+tet_log2fold <- log2((chisq$observed + 1)/ (chisq$expected + 1))[2,]
 
 ## Only for DHF binding
 data_fig1f_dhf <- data_fig1f_new_summ  %>% 
@@ -1162,8 +1411,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-dhf_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+dhf_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the catalytic residues
 data_fig1f_new_cat <- data_fig1f_new_summ  %>% 
@@ -1179,8 +1430,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-cat_log2fold <- log2((chisq$observed + 1)/ chisq$expected)[2,]
+cat_log2fold <- log2((chisq$observed + 1)/ (chisq$expected + 1))[2,]
 
 ## Only for the NADPH binding residues
 data_fig1f_new_nadph <- data_fig1f_new_summ  %>% 
@@ -1196,8 +1449,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-nadph_log2fold <- log2((chisq$observed + 1)/ chisq$expected)[2,]
+nadph_log2fold <- log2((chisq$observed + 1)/ (chisq$expected + 1))[2,]
 
 ## Only for the disordered region
 data_fig1f_new_dis <- data_fig1f_new_summ  %>% 
@@ -1213,8 +1468,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-dis_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+dis_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the buried residues
 data_fig1f_new_bur <- data_fig1f_new_summ  %>% 
@@ -1230,8 +1487,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-bur_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+bur_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the unannotated residues
 data_fig1f_new_unannot <- data_fig1f_new_summ  %>% 
@@ -1247,8 +1506,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-unannot_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+unannot_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 #### Add the ddG data ####
 data_fig1f_new_summ_ddg <- left_join(x = data_fig1f_new_summ, 
@@ -1283,8 +1544,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-high_ddg_stab_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+high_ddg_stab_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the mutants with low ddG stability
 data_fig1f_low_ddg_stab <- data_fig1f_new_summ_ddg  %>% 
@@ -1300,8 +1563,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-low_ddg_stab_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+low_ddg_stab_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the mutants with high ddG dimerization interface
 data_fig1f_high_ddg_dim <- data_fig1f_new_summ_ddg  %>% 
@@ -1317,10 +1582,12 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
-# Calculate log2(obs / exp)
-high_ddg_dim_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
 
-## Only for the mutants with low ddG stability
+# Calculate log2(obs / exp)
+high_ddg_dim_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
+
+## Only for the mutants with low ddG dimerization interface
 data_fig1f_low_ddg_dim <- data_fig1f_new_summ_ddg  %>% 
   pivot_longer(cols = c(high_ddG_stab, low_ddG_stab, 
                         high_ddG_dim, low_ddG_dim, 
@@ -1334,8 +1601,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-low_ddg_dim_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+low_ddg_dim_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 ## Only for the mutants with high ddG tetramerization interface
 data_fig1f_high_ddg_tet <- data_fig1f_new_summ_ddg  %>% 
@@ -1351,10 +1620,12 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
-# Calculate log2(obs / exp)
-high_ddg_tet_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
 
-## Only for the mutants with low ddG stability
+# Calculate log2(obs / exp)
+high_ddg_tet_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
+
+## Only for the mutants with low ddG tetramerization interface
 data_fig1f_low_ddg_tet <- data_fig1f_new_summ_ddg  %>% 
   pivot_longer(cols = c(high_ddG_stab, low_ddG_stab, 
                         high_ddG_dim, low_ddG_dim, 
@@ -1368,8 +1639,10 @@ chisq$observed
 chisq$expected
 chisq$p.value
 
+rowwise_pvals <- c(rowwise_pvals, chisq$p.value)
+
 # Calculate log2(obs / exp)
-low_ddg_tet_log2fold <- log2((chisq$observed + 1) / chisq$expected)[2,]
+low_ddg_tet_log2fold <- log2((chisq$observed + 1) / (chisq$expected + 1))[2,]
 
 #### Concatenate the data for all sites and put it in a heatmap ####
 
@@ -1382,13 +1655,32 @@ rownames(data_enrichment) <- c('Dimerization interface', 'Tetramerization interf
                                'DHF binding', 'Catalytic residues', 'NADPH binding', 
                                'Disordered region',
                                'Buried residues', 'Unannotated residues', 
-                               '\u0394\u0394G dim >= 2', '\u0394\u0394G stab >= 2',
-                               '\u0394\u0394G tet >= 2', 
-                               '\u0394\u0394G dim < 2', '\u0394\u0394G stab < 2',
-                               '\u0394\u0394G tet < 2')
+                               '\u0394\u0394G dim >= 2', '\u0394\u0394G tet >= 2',
+                               '\u0394\u0394G stab >= 2', 
+                               '\u0394\u0394G dim < 2', '\u0394\u0394G tet < 2',
+                               '\u0394\u0394G stab < 2')
+
+## Work with the rowwise pvalues
+df_row_pvals <- data.frame(cbind(c('Dimerization interface', 'Tetramerization interface', 
+                         'DHF binding', 'Catalytic residues', 'NADPH binding', 
+                         'Disordered region',
+                         'Buried residues', 'Unannotated residues',
+                         '\u0394\u0394G stab >= 2', '\u0394\u0394G stab < 2',
+                         '\u0394\u0394G dim >= 2', '\u0394\u0394G dim < 2',
+                         '\u0394\u0394G tet >= 2', '\u0394\u0394G tet < 2'
+                         ), 
+                       rowwise_pvals))
+
+## Do the Benjamini-Hochberg correction
+fdr_test <-  p.fdr(pvalues = as.numeric(df_row_pvals$rowwise_pvals), adjust.method = 'BH', threshold = 0.05)
+df_row_pvals$p.adj <- fdr_test$fdrs
 
 seq1 <- seq(-8, 0, length.out = 4)
 seq2 <- seq(0, 2, length.out = 4)
+
+df_row_pvals$signif <- ifelse(df_row_pvals$p.adj < 0.01, '*', '')
+ha_new <- rowAnnotation(foo = anno_text(df_row_pvals$signif, location = 0.5, just = 'right', 
+                                        gp = gpar(border = 'white')))
 
 p_figS9C <- Heatmap(data_enrichment, cluster_columns = F, cluster_rows = T,
                         clustering_distance_rows = 'pearson',
@@ -1407,9 +1699,15 @@ p_figS9C <- Heatmap(data_enrichment, cluster_columns = F, cluster_rows = T,
                         column_title = 'Cluster',
                         column_title_side = 'bottom',
                         column_names_rot = 0,
+                        left_annotation = ha_new,
                         column_names_gp = gpar(fontsize=14,fontface='bold'),
                         column_title_gp = gpar(fontsize=20, fontface = 'bold'),
                         show_heatmap_legend = TRUE,
+                        cell_fun = function(j, i, x, y, w, h, col) { # add text to each grid
+                          
+                          grid.text(x, y,label = round(data_enrichment[i, j], 2),
+                                    gp = gpar(fontsize = 20, fontface = 'bold'))
+                        },
                         heatmap_legend_param = list(
                           at = c(-8, -4, 0, 1, 2),
                           title = "log2 fold enrichment",
@@ -1430,100 +1728,13 @@ p_figS9 <- plot_grid(
   grid.grabExpr(draw(p_figS9C)), nrow = 3,
   labels = c('A', 'B', 'C'), label_size = 20, label_fontface = 'bold')
 
-ggsave(p_figS9, width = 14, height = 17, dpi = 300, device = cairo_pdf, 
-       filename = 'Figures/Supplementary_figures/FigS9_kmeans_clusters.pdf')
+ggsave(p_figS9, width = 14, height = 17, dpi = 300, device = cairo_pdf,
+       filename = 'Figures/Supplementary_figures/FigS9_kmeans_clusters_BH.pdf')
+
 ggsave(p_figS9, width = 14, height = 17, dpi = 300, device = 'png', 
-       filename = 'Figures/Supplementary_figures/FigS9_kmeans_clusters.png')
+      filename = 'Figures/Supplementary_figures/FigS9_kmeans_clusters_BH.png')
 
-#### Figure S10: Faceted view of figure 1E with errorbars ####
-
-data_fig_2 <- all_data_complete %>% ungroup() %>%
-  filter(TMP == 10, Timepoint == 10) %>%
-  select(Position, WT_Residue, Residue, mean_sel_coeff, sem_sel_coeff, Arabinose)
-
-# Separate the data for optimal expression from the rest
-data_part_1 <- data_fig_2 %>%
-  filter(Arabinose == 0.2)
-
-data_part_2 <- data_fig_2 %>%
-  filter(Arabinose != 0.2)
-
-# Change column names
-colnames(data_part_2) <- c("Position", "WT_Residue", "Residue", "mean_sel_coeff_2", "sem_sel_coeff_2", "Arabinose_2")
-
-# Join
-data_fig_2_final <- inner_join(x = data_part_1, y = data_part_2, 
-                               by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 'Residue' = 'Residue')
-)
-
-data_fig_2_final_exp <- data_fig_2_final %>% 
-  mutate(exp_level = ifelse(Arabinose_2 == 0.01, 'Weak expression', 
-                            ifelse(Arabinose_2 == 0.025, 'Suboptimal expression', 
-                                   ifelse(Arabinose_2 == 0.05, 'Near-optimal expression',
-                                          ifelse(Arabinose_2 == 0.4, 'Overexpressed', NA))))) %>%
-  mutate(exp_level = factor(exp_level, levels = c('Weak expression', 'Suboptimal expression', 
-                                                  'Near-optimal expression', 'Overexpressed')))
-
-
-## Make sure WT appears only once
-data_fig_2_final_exp_nowt <- data_fig_2_final_exp %>% filter(WT_Residue != Residue)
-data_fig_2_final_exp_wt <- data_fig_2_final_exp %>% filter(WT_Residue == Residue, Position == 2)
-
-data_fig_2_final_exp_plot <- bind_rows(data_fig_2_final_exp_nowt, data_fig_2_final_exp_wt)
-
-# Define a function for npc annotations
-annotation_box <- roundrectGrob(x = unit(0.225, 'npc'), y = unit(0.85, 'npc'), 
-                                width = unit(0.3, 'npc'), height = unit(0.125, 'npc'), 
-                                gp = gpar(lwd = 2, col = 'black',
-                                          fill = '#737373',
-                                          lty = 2))
-
-p_figs10 <- data_fig_2_final_exp_plot %>%
-  ggplot(aes(x = mean_sel_coeff, y = mean_sel_coeff_2, 
-             colour = as.factor(exp_level))
-  ) +
-  facet_wrap(~exp_level, nrow = 2, scales = 'free') +
-  geom_errorbarh(aes(xmax = mean_sel_coeff + sem_sel_coeff, xmin = mean_sel_coeff - sem_sel_coeff), 
-                 alpha = 0.5) +
-  geom_errorbar(aes(ymax = mean_sel_coeff_2 + sem_sel_coeff_2, ymin = mean_sel_coeff_2 - sem_sel_coeff_2), 
-                alpha = 0.5) +
-  geom_point(alpha = 1, size = 2) +
-  geom_abline(slope = 1, intercept = 0, linetype = 'dashed', colour = 'black') +
-  labs(colour = 'Expression level in y-axis', 
-       x = expression(paste(bolditalic('s'), 
-                            bold(' (optimal expression)'), 
-                            sep = '')), 
-       y = expression(paste(bolditalic('s'), 
-                            bold(' (non-optimal expression)')))) +
-  scale_colour_manual(values = c('#fed976', '#fd8d3c', '#bd0026', 'black')) +
-  annotation_custom(annotation_box) +
-  stat_cor(p.accuracy = 0.001, r.accuracy = 0.01,
-           label.x.npc = 0.05,
-           label.y.npc = 0.9,
-           size = 8,
-           vjust = 1,
-           method = 'spearman', show.legend = F, cor.coef.name = 'rho' 
-  ) +
-  geom_smooth(method = 'loess', show.legend = F) +
-  theme(axis.title = element_text(face = 'bold', size = 20), 
-        axis.text = element_text(size = 18), 
-        legend.text = element_text(size = 18),
-        legend.title = element_text(size = 20),
-        legend.position = 'top', 
-        legend.justification = 0.5, 
-        strip.text = element_text(size = 18, face = 'bold'),
-        strip.background = element_rect(fill = 'white'),
-        panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-        panel.grid.minor = element_blank()
-  ) +
-  xlim(-1, 0.5) + ylim(-1, 0.5)
-p_figs10
-ggsave(p_figs10, device = cairo_pdf, width = 21, height = 17, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS10_facet_errorbars.pdf')
-ggsave(p_figs10, device = 'png', width = 21, height = 17, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS10_facet_errorbars.png')
-
-##### Fig. S11: deltaAUC correlates with deltaS ####
+##### Fig. S10: deltaAUC correlates with deltaS ####
 
 ## Have a look at the growth curves ##
 plate.ind <- 'Data/Growth_curves/Growth_curves_20_04_2022_sampleSheet.csv'
@@ -1563,7 +1774,6 @@ read.my.gc <- function(file, plate.index){
 
 data.od1 <- read.my.gc(file.od, plate.ind)
 
-# Let's see how the area under the curve correlates with the DMS selection coefficients
 # Use a left join to add the selection coefficients
 data.od1.new <- left_join(x = data.od1, 
                           y = all_data_complete %>% rowwise() %>% 
@@ -1607,10 +1817,13 @@ data.od1.summary.final <- inner_join(x = data.od1.summary.auc,
                                      y = data.od1.summary.deltaS, 
                                      by = c('ID' = 'ID'))
 
-p_figS11 <- data.od1.summary.final %>% 
+p_figS10C <- data.od1.summary.final %>% 
   ggplot(aes(x = diffNormScore, y = delta_AUC)) +
   geom_point(size = 2) +
-  geom_label_repel(aes(label = ID), fontface = 'bold', size = 6) +
+  stat_cor(p.accuracy = 0.001, r.accuracy = 0.01, cor.coef.name = 'rho', size = 6,
+           label.x.npc = 0.05, label.y.npc = 0.9, method = 'spearman') +
+  geom_smooth(method = 'lm', show.legend = F) +
+  geom_label_repel(aes(label = ID), fontface = 'bold', size = 4) +
   theme(axis.title = element_text(face = 'bold', size = 20), 
         axis.text = element_text(size = 18), 
         legend.text = element_text(size = 18), 
@@ -1622,26 +1835,85 @@ p_figS11 <- data.od1.summary.final %>%
         panel.background = element_rect(fill = 'white'),
         plot.margin = margin(t = 0.5, b = 0.5, l = 0.5, r = 0.5, unit = 'cm')
         ) +
-  stat_cor(p.accuracy = 0.001, r.accuracy = 0.01, cor.coef.name = 'rho', size = 6,
-           label.x.npc = 0.05, label.y.npc = 0.9, method = 'spearman') +
-  geom_smooth(method = 'lm', show.legend = F) +
-  labs(x = expression(paste(bold('\u0394'),
-                            bolditalic(s[weak]), 
-                            bold(' ('),
-                            bolditalic(s[weak] - s[opt]), 
-                            bold(')'), sep = '')),
-       y = expression(paste(bold('\u0394'),
-                            bolditalic(AUC[weak]), 
-                            bold(' ('),
-                            bolditalic(AUC[weak] - AUC[opt]),
-                            bold(')'), sep = '')))
-p_figS11
-ggsave(p_figS11, device = cairo_pdf, width = 10, height = 7, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS11_deltaAUC_deltaS.pdf')
-ggsave(p_figS11, device = 'png', width = 10, height = 7, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS11_deltaAUC_deltaS.png')
+  # labs(x = expression(paste(bold('\u0394'),
+  #                           bolditalic(s[weak]), 
+  #                           bold(' ('),
+  #                           bolditalic(s[weak] - s[opt]), 
+  #                           bold(')'), sep = '')),
+  #      y = expression(paste(bold('\u0394'),
+  #                           bolditalic(AUC[weak]), 
+  #                           bold(' ('),
+  #                           bolditalic(AUC[weak] - AUC[opt]),
+  #                           bold(')'), sep = ''))
+  #      )
+  labs(x = expression(paste(bold('Difference between '),
+                            bolditalic(s[opt]),
+                            bold(' and '),
+                            bolditalic(s[weak]),
+                            sep = '')),
+       y = expression(paste(bold('Difference between '),
+                            bolditalic(AUC[opt]),
+                            bold(' and '),
+                            bolditalic(AUC[weak]),
+                            sep = ''))
+       )
+p_figS10C
 
-####  Fig. S12: GEMME vs DMS (with TMP) ####
+p_figS10B <- data.od1.summary %>% 
+  ggplot(aes(x = Expression_level, y = mean_auc_final, 
+             label = ID)) +
+  geom_point() + 
+  # geom_errorbar() +
+  geom_line(aes(group = ID)) +
+  geom_label_repel(aes(label = ID), fontface = 'bold', size = 4) +
+  xlab('Promoter activity') +
+  labs(y = expression(paste(bold('Growth in liquid culture ('),
+                            bolditalic(AUC), bold(')'), sep = ''))) +
+  theme(
+    axis.title.x = element_text(face = 'bold', size = 22), 
+    axis.title.y = element_text(face = 'bold', size = 22),
+    axis.text = element_text(size = 20), 
+    legend.position = 'top',
+    legend.justification = 'center',
+    panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
+    panel.grid.minor = element_blank() 
+  )
+p_figS10B
+
+p_figS10A <- data.od1.summary %>% 
+  ggplot(aes(x = Expression_level, y = mean_sel_coeff, 
+             # ymax = mean_auc_final + sem_auc, ymin = mean_auc_final - sem_auc, 
+             label = ID)) +
+  geom_point() + 
+  # geom_errorbar() +
+  geom_line(aes(group = ID)) +
+  geom_label_repel(aes(label = ID), fontface = 'bold', size = 4) +
+  xlab('Promoter activity') +
+  labs(y = expression(bolditalic(s))) +
+  theme(
+    axis.title.x = element_text(face = 'bold', size = 22), 
+    axis.title.y = element_text(face = 'bold', size = 22),
+    axis.text = element_text(size = 20), 
+    legend.position = 'top',
+    legend.justification = 'center',
+    panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
+    panel.grid.minor = element_blank() 
+  )
+p_figS10A
+
+p_figS10_top <- plot_grid(p_figS10A, p_figS10B, ncol = 2, labels = c('A', 'B'), 
+                             label_size = 20, label_fontface = 'bold')
+
+p_figS10 <- plot_grid(p_figS10_top, p_figS10C, nrow = 2, 
+                      labels = c('', 'C'), label_size = 20, label_fontface = 'bold')
+
+ggsave(p_figS10, device = cairo_pdf, width = 10, height = 14, dpi = 300, 
+       filename = 'Figures/Supplementary_figures/FigS10_deltaAUC_deltaS.pdf')
+
+ggsave(p_figS10, device = 'png', width = 10, height = 14, dpi = 300, 
+       filename = 'Figures/Supplementary_figures/Oct21/FigS10_deltaAUC_deltaS.png')
+
+####  Fig. S11: GEMME vs DMS (with TMP) ####
 
 #### Compare the DMS data and the GEMME data ####
 
@@ -1666,15 +1938,15 @@ gemme_vs_dms_wt <- gemme_vs_dms %>% filter(WT_Residue == Residue, Position == 2)
 gemme_vs_dms_plot <- bind_rows(gemme_vs_dms_nowt, gemme_vs_dms_wt)
 
 ## Prepare plots
-p_figS12 <- gemme_vs_dms_plot %>% rowwise() %>% 
-  mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak expression', 
-                            ifelse(Arabinose == 0.025, 'Suboptimal expression', 
-                                   ifelse(Arabinose == 0.05, 'Near-optimal expression', 
-                                          ifelse(Arabinose == 0.2, 'Optimal expression',
-                                                 ifelse(Arabinose == 0.4, 'Overexpression', NA)))))) %>%
-  mutate(exp_level = factor(exp_level, levels = c('Weak expression', 'Suboptimal expression', 
-                                                  'Near-optimal expression', 'Optimal expression',
-                                                  'Overexpression'))) %>%
+p_figS11 <- gemme_vs_dms_plot %>% rowwise() %>% 
+  mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak\npromoter activity', 
+                            ifelse(Arabinose == 0.025, 'Suboptimal\npromoter activity', 
+                                   ifelse(Arabinose == 0.05, 'Near-optimal\npromoter activity', 
+                                          ifelse(Arabinose == 0.2, 'Optimal\npromoter activity',
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal\npromoter activity', NA)))))) %>%
+  mutate(exp_level = factor(exp_level, levels = c('Weak\npromoter activity', 'Suboptimal\npromoter activity', 
+                                                  'Near-optimal\npromoter activity', 'Optimal\npromoter activity',
+                                                  'Above-optimal\npromoter activity'))) %>%
   filter(TMP == 10) %>%
   mutate(Arabinose = str_c(toString(Arabinose), '% arabinose', sep = '')) %>%
   ggplot(aes(x = Fitness, y = mean_sel_coeff)) + 
@@ -1691,13 +1963,15 @@ p_figS12 <- gemme_vs_dms_plot %>% rowwise() %>%
            label.x.npc = 0.05, label.y.npc = 0.9, method = 'spearman') +
   geom_smooth(method = 'lm', show.legend = F) +
   ylim(-1, 0.7)
-p_figS12
-ggsave(plot = p_figS12, device = cairo_pdf, width = 14, height = 17, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS12_GEMME.pdf')
-ggsave(plot = p_figS12, device = 'png', width = 14, height = 17, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS12_GEMME.png')
+p_figS11
+ggsave(plot = p_figS11, device = cairo_pdf, width = 14, height = 17, dpi = 300,
+       filename = 'Figures/Supplementary_figures/FigS11_GEMME.pdf')
 
-#### Figure S13: Expresion-dependent differences in fitness effects become weaker ####
+
+ggsave(plot = p_figS11, device = 'png', width = 14, height = 17, dpi = 300,
+       filename = 'Figures/Supplementary_figures/FigS11_GEMME.png')
+
+#### Figure S12: Expresion-dependent differences in fitness effects become weaker ####
 #### as expression approaches the optimum ####
 
 data_fig_4 <- all_data_complete %>% ungroup() %>%
@@ -1756,15 +2030,30 @@ data_fig_4_final <- as.matrix(data_fig_4_final_df %>% select(-Position))
 
 rownames(data_fig_4_final) <- data_fig_4_final_df$Position
 
-fig_4_bool <- data_fig_4 %>%
-  filter(Arabinose == 0.025) %>%
+#### Label WT residues
+residue_list <- c('A', 'R', 'D', 'N', 'C', 
+                  'E', 'Q', 'G', 'H', 'I', 
+                  'L', 'K', 'M', 'F', 'P',
+                  'S', 'T', 'W', 'Y', 'V', '*')
+fig_4_bool <- data_fig_4 %>% ungroup() %>%
+  select(Position, WT_Residue) %>%
+  unique()
+
+residue_options <- as.data.frame(cbind(rep(fig_4_bool$Position, each = length(residue_list)), 
+                                       rep(residue_list, nrow(fig_4_bool))))
+colnames(residue_options) <- c('Position', 'Residue')
+
+fig_4_bool_new <- left_join(x = fig_4_bool, 
+                           y = residue_options %>% mutate(Position = as.numeric(Position)), 
+                           by = c('Position' = 'Position')) %>%
+  arrange(Position, Residue) %>% 
   mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
+  select(-WT_Residue) %>%
   pivot_wider(names_from = Residue, values_from = WT_check)
 
-fig_4_bool_final <- as.matrix(fig_4_bool %>% select(-Position))
+fig_4_bool_final <- as.matrix(fig_4_bool_new %>% select(-Position))
 
-rownames(fig_4_bool_final) <- fig_4_bool$Position
+rownames(fig_4_bool_final) <- fig_4_bool_new$Position
 
 # Need to reorder the columns in the matrices
 data_fig_4_final <- data_fig_4_final[1:nrow(data_fig_4_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
@@ -1789,7 +2078,7 @@ column_labels = c('', '', '', '5',
 )
 
 ### Repeat figure 4a with the annotation about expression level
-p_figs13_ara0.01 <- Heatmap(
+p_figs12_ara0.01 <- Heatmap(
   t(data_fig_4_final), cluster_columns = F, cluster_rows = F, 
   col = colorRamp2(breaks = seq(-4, 4, length.out = 7) / 10, 
                    colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
@@ -1822,7 +2111,7 @@ p_figs13_ara0.01 <- Heatmap(
   ), 
   column_labels = column_labels
 )
-p_figs13_ara0.01
+p_figs12_ara0.01
 
 ### 0.025 arabinose
 # Separate the data for ara 0.2
@@ -1853,22 +2142,10 @@ data_fig_4_final <- as.matrix(data_fig_4_final_df %>% select(-Position))
 
 rownames(data_fig_4_final) <- data_fig_4_final_df$Position
 
-# Get a matrix of true/false values for the synonymous codons (I will reuse the)
-fig_4_bool <- data_fig_4 %>%
-  filter(Arabinose == 0.025) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final <- as.matrix(fig_4_bool %>% select(-Position))
-
-rownames(fig_4_bool_final) <- fig_4_bool$Position
-
 # Need to reorder the columns in the matrices
 data_fig_4_final <- data_fig_4_final[1:nrow(data_fig_4_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final <- fig_4_bool_final[1:nrow(fig_4_bool_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
 
-p_figs13_ara0.025 <- Heatmap(
+p_figs12_ara0.025 <- Heatmap(
   t(data_fig_4_final), cluster_columns = F, cluster_rows = F, 
   col = colorRamp2(breaks = seq(-4, 4, length.out = 7) / 10, 
                    colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
@@ -1902,7 +2179,7 @@ p_figs13_ara0.025 <- Heatmap(
   column_labels= column_labels
 )
 
-p_figs13_ara0.025
+p_figs12_ara0.025
 
 ### 0.05 arabinose
 # Separate the data for ara 0.2
@@ -1933,22 +2210,10 @@ data_fig_4_final <- as.matrix(data_fig_4_final_df %>% select(-Position))
 
 rownames(data_fig_4_final) <- data_fig_4_final_df$Position
 
-# Get a matrix of true/false values for the synonymous codons (I will reuse the)
-fig_4_bool <- data_fig_4 %>%
-  filter(Arabinose == 0.05) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final <- as.matrix(fig_4_bool %>% select(-Position))
-
-rownames(fig_4_bool_final) <- fig_4_bool$Position
-
 # Need to reorder the columns in the matrices
 data_fig_4_final <- data_fig_4_final[1:nrow(data_fig_4_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final <- fig_4_bool_final[1:nrow(fig_4_bool_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
 
-p_figs13_ara0.05 <- Heatmap(
+p_figs12_ara0.05 <- Heatmap(
   t(data_fig_4_final), cluster_columns = F, cluster_rows = F, 
   col = colorRamp2(breaks = seq(-4, 4, length.out = 7) / 10, 
                    colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
@@ -1981,7 +2246,7 @@ p_figs13_ara0.05 <- Heatmap(
   column_labels = column_labels
 )
 
-p_figs13_ara0.05
+p_figs12_ara0.05
 
 ### 0.4 arabinose
 # Separate the data for ara 0.2
@@ -2012,19 +2277,8 @@ data_fig_4_final <- as.matrix(data_fig_4_final_df %>% select(-Position))
 
 rownames(data_fig_4_final) <- data_fig_4_final_df$Position
 
-fig_4_bool <- data_fig_4 %>%
-  filter(Arabinose == 0.4) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final <- as.matrix(fig_4_bool %>% select(-Position))
-
-rownames(fig_4_bool_final) <- fig_4_bool$Position
-
 # Need to reorder the columns in the matrices
 data_fig_4_final <- data_fig_4_final[1:nrow(data_fig_4_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final <- fig_4_bool_final[1:nrow(fig_4_bool_final), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
 
 data_interfaces_final <- read_delim('Data/data_annotation_2.txt', delim = '\t')
 
@@ -2053,7 +2307,7 @@ ha2 <- HeatmapAnnotation(
   gp = gpar(col = "black")
 )
 
-p_figs13_ara0.4 <- Heatmap(
+p_figs12_ara0.4 <- Heatmap(
   t(data_fig_4_final), cluster_columns = F, cluster_rows = F, 
   col = colorRamp2(breaks = seq(-4, 4, length.out = 7) / 10, 
                    colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
@@ -2086,11 +2340,11 @@ p_figs13_ara0.4 <- Heatmap(
   ), 
   column_labels = column_labels
 )
-p_figs13_ara0.4
+p_figs12_ara0.4
 
 ## Put the three figures together
-ht_list = p_figs13_ara0.01 %v% p_figs13_ara0.025 %v% p_figs13_ara0.05 %v% p_figs13_ara0.4 
-p_figs13_heatmaps <- grid.grabExpr(
+ht_list = p_figs12_ara0.01 %v% p_figs12_ara0.025 %v% p_figs12_ara0.05 %v% p_figs12_ara0.4 
+p_figs12_heatmaps <- grid.grabExpr(
   draw(ht_list,
        row_title_gp = gpar(fontsize=20, fontface = 'bold'),
        ht_gap = unit(1, "cm"))
@@ -2131,9 +2385,9 @@ text_fig_ara0.05
 
 # Arabinose 0.4
 text_fig_ara0.4 <- ggplot() + draw_label(
-  expression(atop(paste(bold('\u0394'), bolditalic(s[over]), sep = ''),
+  expression(atop(paste(bold('\u0394'), bolditalic(s[above-opt]), sep = ''),
                   paste(bold('('), 
-                        bolditalic(s[over] - s[opt]), bold(')'), sep = ''))),
+                        bolditalic(s[above-opt] - s[opt]), bold(')'), sep = ''))),
   x = 0.7, y = 0.35,
                                           fontface = 'bold', size = 35, angle = 90, colour = 'black') +
   theme(axis.line = element_blank())
@@ -2163,9 +2417,30 @@ data_deltaS_final %<>%
   mutate(Expression_level = ifelse(Arabinose_2 == 0.01, 'Weak', 
                                    ifelse(Arabinose_2 == 0.025, 'Suboptimal', 
                                           ifelse(Arabinose_2 == 0.05, 'Near-optimal',
-                                                 ifelse(Arabinose_2 == 0.4, 'Overexpressed', NA))))) %>%
+                                                 ifelse(Arabinose_2 == 0.4, 'Above-optimal', NA))))) %>%
   mutate(Expression_level = factor(Expression_level,
-                                   levels = c('Weak', 'Suboptimal', 'Near-optimal', 'Overexpressed')))
+                                   levels = c('Weak', 'Suboptimal', 'Near-optimal', 'Above-optimal')))
+
+## Remove rows that have NAs
+data_deltaS_final_wide <- data_deltaS_final %>%
+  select(Position, WT_Residue, Residue, diffNormScore, Expression_level) %>%
+  pivot_wider(names_from = 'Expression_level', values_from = 'diffNormScore')
+
+# Remove NAs
+lines_remove <- c()
+## Remove lines that have NAs
+for(i in 1:nrow(data_deltaS_final_wide)){
+  if(any(is.na(data_deltaS_final_wide[i,]))){
+    lines_remove <- c(lines_remove, i)
+  }
+}
+
+data_deltaS_final_wide <- data_deltaS_final_wide[-lines_remove, ]
+
+## Restore the long dataframe
+data_deltaS_final <- data_deltaS_final_wide %>% 
+  pivot_longer(cols = c(Weak, Suboptimal, `Near-optimal`, `Above-optimal`),
+               names_to = 'Expression_level', values_to = 'diffNormScore')
 
 comps <- compare_means(diffNormScore~Expression_level, data = data_deltaS_final,
                        paired = TRUE) %>%
@@ -2175,7 +2450,9 @@ comps <- compare_means(diffNormScore~Expression_level, data = data_deltaS_final,
   y_pos = c(0.6, 0.75, 0.9, 1.05, 1.20, 1.35)
   )
 
-p_figs13b <- data_deltaS_final %>% ungroup() %>% 
+p_figs12b <- data_deltaS_final %>% ungroup() %>% 
+  mutate(Expression_level = factor(Expression_level,
+                                   levels = c('Weak', 'Suboptimal', 'Near-optimal', 'Above-optimal'))) %>%
   ggplot(aes(x = Expression_level, y = diffNormScore, fill = Expression_level)) +
   geom_point(aes(colour = Expression_level),alpha = 1, 
              position = position_jitterdodge(jitter.width = 0.25)) +
@@ -2187,7 +2464,7 @@ p_figs13b <- data_deltaS_final %>% ungroup() %>%
   scale_fill_manual(values = c('#fed976', '#fd8d3c', '#bd0026', 'black')) +
   scale_colour_manual(values = c('#fed976', '#fd8d3c', '#bd0026', 'black')) +
   labs(y = expression(paste(bold('\u0394'), bolditalic('s'), sep = ''))) +
-  xlab('Expression level') +
+  xlab('Promoter activity') +
   theme(axis.title = element_text(face = 'bold', size = 24), 
         axis.text = element_text(size = 22), 
         legend.text = element_text(size = 20),
@@ -2197,183 +2474,193 @@ p_figs13b <- data_deltaS_final %>% ungroup() %>%
         panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
         panel.grid.minor = element_blank(), 
   plot.margin = margin(t = 1, r = 9, b = 0, l = 15, 'cm'))
-p_figs13b
+p_figs12b
 
 ## Save text and figures separately
-p_figs13_text <- plot_grid(text_fig_ara0.01, text_fig_ara0.025, text_fig_ara0.05, text_fig_ara0.4,
+p_figs12_text <- plot_grid(text_fig_ara0.01, text_fig_ara0.025, text_fig_ara0.05, text_fig_ara0.4,
                            nrow = 4, rel_heights = c(1.1, 1, 1.1, 1))
 
-p_figs13 <- plot_grid(p_figs13_heatmaps, p_figs13b, nrow = 2, rel_heights = c(1, 0.3), 
-                      labels = c('A', 'B'), label_size = 20, label_fontface = 'bold')
+p_figs12 <- plot_grid(p_figs12_heatmaps, p_figs12b, nrow = 2, rel_heights = c(1, 0.3), 
+                      labels = c('A', 'B'), label_size = 40, label_fontface = 'bold')
 
-ggsave(p_figs13, width = 23, height = 31, dpi = 300, device = cairo_pdf, 
-       filename = 'Figures/Supplementary_figures/FigS13_supp_allDiff_noSecStruc_buried_no_labels.pdf')
-ggsave(p_figs13_text, width = 23, height = 31, dpi = 300, device = cairo_pdf, 
-       filename = 'Figures/Suppelementary_figures/FigS13_supp_allDiff_noSecStruc_buried_text.pdf')
+ggsave(p_figs12, width = 23, height = 31, dpi = 300, device = cairo_pdf,
+       filename = 'Figures/Supplementary_figures/FigS12_supp_allDiff_noSecStruc_buried_no_labels.pdf')
+
+ggsave(p_figs12_text, width = 23, height = 31, dpi = 300, device = cairo_pdf,
+       filename = 'Figures/Supplementary_figures/FigS12_supp_allDiff_noSecStruc_buried_text.pdf')
 
 ## Comparing the deltaS from overexpression to the others
 data_corr_check <- data_deltaS_final %>%
-  ungroup() %>% group_by(Position, WT_Residue, Residue,
-                         Arabinose, Arabinose_2) %>%
-  select(-Expression_level, -mean_sel_coeff_2) %>%
-  pivot_wider(names_from = Arabinose_2, names_prefix = 'ara', values_from = diffNormScore)
+  ungroup() %>% group_by(Position, WT_Residue, Residue,Expression_level) %>%
+  pivot_wider(names_from = Expression_level, values_from = diffNormScore)
 
-cor(data_corr_check %>% ungroup() %>% select(ara0.01, ara0.025, ara0.05, ara0.4),
+cor(data_corr_check %>% ungroup() %>% 
+    select(Weak, Suboptimal, `Near-optimal`, `Above-optimal`),
     method = 'spearman')
 
-#### Figure S14: E2R and E2V increase expression ####
+#### Figure S13: Constructs used to test E2V expression ####
 
-# Load the main table with the sample IDs
-annotation_df <- read_delim('Data/Cytometry/E2V_E2R_expression_increase/Stats_run_21_04_22_all_samples_clean.csv',
-                            delim = ';', locale = locale(decimal_mark = ','))
+p_figS13_constructs <- ggdraw() +
+  draw_image('Figures/Supplementary_figures/Figure_S13_constructs.png')
+p_figS13_constructs
 
-# Use a loop to load the rest of the data
-path_files <- 'Data/Cytometry/E2V_E2R_expression_increase/All_raw_files/'
-list_files <- list.files(path_files)
+ggsave(p_figS13_constructs, device = cairo_pdf, width = 10, height = 7, dpi = 300,
+       filename = 'Figures/Supplementary_figures/FigS13_constructs.pdf')
 
-all_data <- c()
+ggsave(p_figS13_constructs, device = 'png', width = 10, height = 7, dpi = 300,
+       filename = 'Figures/Supplementary_figures/FigS13_constructs.png')
 
-for(infile in list_files){
-  # Load the data
-  new_data <- read_delim(file.path(path_files, infile), delim = ',', col_names = T) %>%
-    select(TIME, 'GRN-B-HLin', 'FSC-HLin', 'SSC-HLin', 'FSC-HLog', 'SSC-HLog')
+
+
+#### Figure S14: Growth curves for WT and E2R mutant ####
+
+# Load the growth curves with TMP
+plate.ind <- 'Data/Growth_curves/Index_growth_curves_11_05_2022.xlsx'
+file.od <- 'Data/Growth_curves/Growth_curves_11_05_2022.xlsx'
+
+## Define function to read plate data
+# function to process plates ----------------------------------------------
+read.my.gc <- function(file, plate.index){
+  pl <- read.xlsx(file,sheetIndex = 1, rowIndex = 3:62, stringsAsfactors = FALSE,
+                  header = F)
+  ind <- read.xlsx(plate.index, sheetIndex = 1, rowIndex = 1:64, header = T) 
   
-  # Add the name of the file as an ID (remove the csv)
-  new_data %<>% mutate(ID = substr(x = infile, start = 1, stop = (nchar(infile) - 4)))
+  time <- seq(0,0.30*(ncol(pl)-2), 0.30)
   
-  all_data <- bind_rows(all_data, new_data)
+  colnames(pl)[1] <- "Well"
+  colnames(pl)[2:ncol(pl)] <- time
+  pl %<>% select(1:(ncol(pl)-2)) 
+  
+  data.pl <- gather(pl, key = "time", value = "OD",2:ncol(pl), convert = F)
+  data.pl$time <- as.numeric(data.pl$time)
+  data.pl$OD <- as.numeric(data.pl$OD)
+  data.pl %<>% left_join(ind, by = "Well")
+  
+  # Subtract the blank for this experiment and multiply by 5 to make it OD / mL
+  # (experiment was carried out in 0.2 mL)
+  data.pl %<>% mutate(OD = (OD - 0.085) * 5)
+  
+  d <-  select(data.pl, 1:3)
+  d %<>% spread(key = "Well", value = "OD", convert = F) 
+  colnames(d)[1] <- "time"
+  
+  ## Use Growthcurver
+  gc_out <- SummarizeGrowthByPlate(d, t_trim =13.5)
+  colnames(gc_out)[1] <- "Well"
+  data.pl %<>% left_join(gc_out, by = "Well")
 }
 
-# Add the annotation data to identify each sample
-# Join by well
-all_data <- left_join(x = all_data %>% separate(col = ID, into = c('ID', 'Well'), sep = 'am.'), 
-                      y = annotation_df,
-                      by = c('Well' = 'Well'))
+data.od1 <- read.my.gc(file.od, plate.ind)
 
+## Load the data without TMP
+plate.ind <- 'Data/Growth_curves/Index_growth_curves_20_05_2022.xlsx'
+file.od <- 'Data/Growth_curves/Growth_curves_20_05_2022.xlsx'
 
-# Add the logarithms of the green fluorescence
-all_data %<>% mutate(GRNBHLog = ifelse(log10(`GRN-B-HLin`) < 0, 0, log10(`GRN-B-HLin`)),
-                     `FSC-HLog` = ifelse(log10(`FSC-HLin`) < 0, 0, log10(`FSC-HLin`)),
-                     `SSC-HLog` = ifelse(log10(`SSC-HLin`) < 0, 0, log10(`SSC-HLin`))
-)
+read.my.gc <- function(file, plate.index){
+  pl <- read.xlsx(file,sheetIndex = 1, rowIndex = 3:62, stringsAsfactors = FALSE,
+                  header = F)
+  ind <- read.xlsx(plate.index, sheetIndex = 1, rowIndex = 1:64, header = T) 
+  
+  time <- seq(0,0.30*(ncol(pl)-2), 0.30)
+  
+  colnames(pl)[1] <- "Well"
+  colnames(pl)[2:ncol(pl)] <- time
+  pl %<>% select(1:(ncol(pl)-2)) 
+  
+  data.pl <- gather(pl, key = "time", value = "OD",2:ncol(pl), convert = F)
+  data.pl$time <- as.numeric(data.pl$time)
+  data.pl$OD <- as.numeric(data.pl$OD)
+  data.pl %<>% left_join(ind, by = "Well")
+  
+  # Subtract the blank for this experiment and multiply by 5 to make it OD / mL
+  # (experiment was carried out in 0.2 mL)
+  data.pl %<>% mutate(OD = (OD - 0.089) * 5)
+  
+  d <-  select(data.pl, 1:3)
+  d %<>% spread(key = "Well", value = "OD", convert = F) 
+  colnames(d)[1] <- "time"
+  
+  ## Use Growthcurver
+  gc_out <- SummarizeGrowthByPlate(d, t_trim =13.5)
+  colnames(gc_out)[1] <- "Well"
+  data.pl %<>% left_join(gc_out, by = "Well")
+}
 
-all_data_processed <- all_data %>% rowwise() %>%
-  mutate(circle_test = (`FSC-HLog` - 1.25)^2 + (`SSC-HLog` - 1.25)^2) %>%
-  filter(circle_test < 1) %>%
-  mutate(
-    Arabinose = Arabinoseconcentration
-  ) %>% select(-Arabinoseconcentration)
+data.od2 <- read.my.gc(file.od, plate.ind)
 
-all_data_processed %<>% 
-  mutate(Expression_level = ifelse(Arabinose == 0, 'Absent', 
-                                   ifelse(Arabinose == 0.01, 'Weak expression', 
-                                          ifelse(Arabinose == 0.2, 'Optimal expression', NA)))
-  ) %>%
-  mutate(Expression_level = factor(Expression_level,
-                                   levels = c('Absent', 'Weak expression', 'Optimal expression')))
+# Put the data together
+data_figs14 <- bind_rows(data.od1, data.od2)
 
-all_data_processed_summary <- all_data_processed %>% 
-  ungroup() %>% group_by(Expression_level, Timepoint, Replicate, Name) %>%
-  summarise(med_fluo = median(GRNBHLog))
+# Summarise to have only one data point for AUC for each well
+data_figs14_summary <- data_figs14 %>% ungroup() %>% 
+  group_by(Well, Arabinose, TMP, Mutant) %>%
+  summarise(auc = mean(auc_e))
 
-# Prepare the panel for the constructs
-p_figS14_constructs <- ggdraw() +
-  draw_image('Figures/Supplementary_figures/Figure_S14_expressionIncrease_2ER.png')
-p_figS14_constructs
+# Summarize to show the average of the three replicates
+data_figs14_sum_curves <- data_figs14 %>% ungroup() %>%
+  group_by(Arabinose, TMP, Mutant, time) %>%
+  summarise(OD = mean(OD))
 
-## Load the data on enzymatic activity
-infile = 'Data/DfrB1_activity/WT,E2R,E2V activity.xlsx'
-activity_data <- read.xlsx(infile, sheetIndex = 1, rowIndex = 4:6, colIndex = 1:11,
-                                 stringsAsfactors = FALSE, header = F)
-colnames(activity_data) <- c('Mutant', 'Slope_rep1', 'Slope_rep2', 'Slope_rep3', 'Avg_slopes', 
-                             'Sd_slopes', 'Rel_activity_rep1', 'Rel_activity_rep2',
-                             'Rel_activity_rep3', 'Avg_rel_activity', 'Sd_rel_activity')
-activity_data <- activity_data[, 1:11]
+#### Show the percentage of growth recovery ####
 
-# Calculate the standard error of the mean
-activity_data %<>% mutate(sem_rel_activity = Sd_rel_activity / sqrt(3))
+# Pivot the area under the curve to calculate the differences
+data_figs14_wide <- data_figs14_summary %>% ungroup() %>%
+  group_by(Well, Arabinose, Mutant) %>%
+  filter(!(is.na(Mutant))) %>%
+  pivot_wider(names_from = TMP, values_from = auc, names_prefix = 'AUC_TMP_')
 
-activity_data_long <- activity_data %>% ungroup() %>% 
-  select(Mutant, Rel_activity_rep1, Rel_activity_rep2, Rel_activity_rep3) %>%
-  pivot_longer(cols = c(Rel_activity_rep1, Rel_activity_rep2, Rel_activity_rep3),
-               names_to = 'Replicate', values_to = 'Rel_activity')
+# Calculate the difference between the data with and without TMP
+# and then the percentage of growth recovery
+data_figs14_wide %<>% mutate(diff_auc = AUC_TMP_10 - AUC_TMP_0)
 
-# Calculate p values for comparisons
-comps <- compare_means(Rel_activity~Mutant, 
-                       data = activity_data_long,
-                       paired = F, 
-                       method = 't.test') %>%
-  mutate(p.format = ifelse(p < 2.2e-16, 'p < 2.2e-16',
-                           ifelse(p > 0.01, str_c('p = ', round(as.numeric(p), 2), sep = ''),
-                                  sprintf("p = %2.1e", as.numeric(p)))
-  ),
-  y_pos = c(270, 295, 320)
-  )
+# Add a column for the maximum difference (0% arabinose)
+max_diff <- data_figs14_wide %>% filter(Arabinose == 0) %>% ungroup() %>%
+  group_by(Arabinose, Mutant) %>%
+  summarise(max_diff = median(diff_auc))
 
-p_figs14a <- activity_data %>% 
-  mutate(Mutant = factor(Mutant, levels = c('WT', 'E2R', 'E2V'))) %>%
-  ggplot(aes(x = Mutant, y = Avg_rel_activity)) +
-  geom_bar(fill = '#737373', stat = 'identity') +
-  geom_errorbar(aes(ymax = Avg_rel_activity + sem_rel_activity, 
-                    ymin = Avg_rel_activity - sem_rel_activity), 
-                width = 0.2) +
+# Use a join to add the maximum difference
+data_figs14_final <- left_join(x = data_figs14_wide, 
+                               y = max_diff %>% ungroup() %>% select(-Arabinose), 
+                               by = c('Mutant' = 'Mutant'))
+
+data_figs14_final %<>%
+  mutate(pct_recovery = 100 * (AUC_TMP_10 / AUC_TMP_0))
+
+# Need to calculate the median growth recovery at 0.001 arabinose
+med_opt_E2R <- data_figs14_final %>% ungroup() %>%
+  filter(Mutant == 'E2R', Arabinose == 0.001) %>%
+  group_by(Mutant, Arabinose) %>%
+  summarise(med_recovery = median(pct_recovery))
+
+cost_e2r <-data_figs14_final %>% mutate(opt_recovery = med_opt_E2R$med_recovery[1])
+
+cost_e2r %<>% mutate(cost = opt_recovery - pct_recovery)
+
+p_figs14 <- cost_e2r %>% 
+  filter(Mutant == 'E2R', Arabinose > 0) %>%
+  ggplot(aes(x = as.factor(Arabinose), y = cost)) +
+  geom_jitter(size = 3, width = 0.2) +
+  stat_summary(fun = mean, colour = 'red') +
+  stat_summary(fun = mean, geom = 'path',
+               mapping = aes(group = -1), colour = 'red') +
   theme(axis.title = element_text(size = 20, face = 'bold'), 
         axis.text = element_text(size = 18), 
         panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-        panel.grid.minor = element_blank()) +
-  geom_signif(data = as.data.frame(comps), inherit.aes = FALSE,
-              aes(xmin = group1, xmax = group2, annotations=p.format, y_position = y_pos), 
-              manual = TRUE, textsize = 6) +
-  geom_hline(yintercept = 100, linetype = 'dashed') +
-  xlab('Mutant') + ylab('Relative activity (%)')
-p_figs14a
+        panel.grid.minor = element_blank(), 
+        legend.position = 'top', 
+        legend.justification = 'center', 
+        legend.title = element_text(size = 20), 
+        legend.text = element_text(size = 18), 
+        strip.text = element_text(size = 20, face = 'bold'), 
+        strip.background = element_rect(fill = 'white')) +
+  xlab('Arabinose (% m/v)') + ylab('Cost of E2R promoter activity\n(% recovered growth)')
+p_figs14
 
-p_figS14 <- all_data_processed %>%
-  filter(Timepoint == 'Exponential phase') %>%
-  ## Adjust names
-  mutate(Name = ifelse(Name == 'DfrB1-2ER-GFP', 'pBAD-dfrB1(E2R)-sfGFP', 
-                      ifelse(Name == 'DfrB1-2ER-M26-GFP', 'pBAD-dfrB1[1-25](E2R)-sfGFP',
-                             ifelse(Name == 'DfrB1', 'pBAD-dfrB1',
-                                    ifelse(Name == 'DfrB1-GFP', 'pBAD-dfrB1-sfGFP',
-                                           ifelse(Name == 'DfrB1-M26-GFP', 'pBAD-dfrB1[1-25]-sfGFP',
-                                                  ifelse(Name == 'GFP', 'pBAD-sfGFP', Name))))))) %>%
-  mutate(Name = factor(Name, levels = c('pBAD-dfrB1', 'pBAD-dfrB1-sfGFP', 
-                                        'pBAD-dfrB1[1-25]-sfGFP',
-                                        'pBAD-dfrB1(E2R)-sfGFP',
-                                        'pBAD-dfrB1[1-25](E2R)-sfGFP',
-                                        'pBAD-sfGFP'
-                                        )),
-         Arabinose = factor(Arabinose, levels = c(0, 0.01, 0.2))) %>%
-  ggplot(aes(x = Name, y = as.numeric(GRNBHLog), colour = Arabinose, fill = Arabinose)) +
-  geom_boxplot(alpha = 0.4, outlier.shape = NA) + 
-  scale_colour_manual(values = c('grey', '#FED976', '#80001A')) +
-  scale_fill_manual(values = c('grey', '#FED976', '#80001A')) +
-  theme(legend.position = 'top',
-      strip.background = element_rect(fill = 'white'), strip.text = element_text(face = 'bold', size = 16),
-      axis.text.x =  element_text(size = 16, angle = 45, hjust = 1), 
-      axis.text.y = element_text(size = 16),
-      axis.title = element_text(face = 'bold', size = 20),
-      panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-      panel.grid.minor = element_blank(), 
-      plot.title = element_text(hjust = 0.5), 
-      axis.line=element_line(), 
-      legend.title = element_text(size = 20), 
-      legend.text = element_text(size = 18),
-      legend.justification = 'center') +
-  xlab('Construct') + ylab('GFP fluorescence (log10)') +
-  labs(fill = 'Arabinose (% m/v)', colour = 'Arabinose (% m/v)')
-p_figS14
-
-p_figS14_abundance <- plot_grid(p_figS14_constructs, p_figS14, nrow = 2,
-                                rel_heights = c(0.5, 1))
-p_figS14_final <- plot_grid(p_figs14a, p_figS14_abundance, labels = c('A', 'B'), nrow = 2, 
-                            label_size = 20, label_fontface = 'bold', 
-                            rel_heights = c(0.65, 1))
-
-ggsave(p_figS14_final, device = cairo_pdf, width = 10, height = 15, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS14_2ER_activity_abundance.pdf')
-ggsave(p_figS14_final, device = 'png', width = 10, height = 14, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS14_2ER_activity_abundance.png')
+ggsave(p_figs14, device = cairo_pdf, width = 12, height = 15, dpi = 300, 
+       filename = 'Figures/Supplementary_figures/FigS14_WT_E2R_recovery.pdf')
+ggsave(p_figs14, device = 'png', width = 12, height = 15, dpi = 300, 
+       filename = 'Figures/Supplementary_figures/FigS14_WT_E2R_recovery.png')
+  
 
 #### Supp. figure 15: F18 and P19 mutations ####
 
@@ -2393,10 +2680,10 @@ color_final <- ifelse(data_plddt$color_check == TRUE, 'red', 'black')
 
 p_figs15b <- data_plddt %>% 
   ggplot(aes(x = Residue, y = pLDDT)) +
-  theme(axis.title = element_text(face = 'bold', size = 20),
-        axis.text.x = element_text(size = 18, angle = 90, vjust = 0.5,
+  theme(axis.title = element_text(face = 'bold', size = 24),
+        axis.text.x = element_text(size = 22, angle = 90, vjust = 0.5,
                                    colour = color_final),
-        axis.text.y = element_text(size = 18),
+        axis.text.y = element_text(size = 20),
         panel.grid.major.y = element_line(colour="#8c8c8c", linetype = 'dashed'),
         panel.grid.minor = element_blank(), 
         legend.position = 'none') +
@@ -2423,11 +2710,11 @@ p_figs15c <- all_data_complete %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal', 
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed',
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal',
                                                         NA)))))) %>%
   mutate(Position = str_c(WT_Residue, Position, sep = ''), 
          exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal', 
-                                                  'Optimal', 'Overexpressed'))) %>%
+                                                  'Optimal', 'Above-optimal'))) %>%
   mutate(Position = factor(Position, 
                            levels = c('F16', 'V17', 'F18', 'P19', 'S20', 'D21', 
                                       'A22', 'T23', 'F24', 'G25', 'M26'))) %>%
@@ -2437,32 +2724,36 @@ p_figs15c <- all_data_complete %>%
   scale_fill_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black')) +
   scale_colour_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'))+
   geom_hline(yintercept = 0, linetype = 'dashed') +
-  theme(axis.title = element_text(face = 'bold', size = 20),
-        axis.text = element_text(size = 18),
+  theme(axis.title = element_text(face = 'bold', size = 24),
+        axis.text = element_text(size = 22),
         panel.grid.major.y = element_line(colour="#8c8c8c", linetype = 'dashed'),
         panel.grid.minor = element_blank(), 
         legend.position = 'top', 
         legend.justification = 'center', 
-        legend.title = element_text(size = 20), 
-        legend.text = element_text(size = 18)) +
-  labs(colour = 'Expression level', fill = 'Expression level') +
+        legend.title = element_text(size = 24), 
+        legend.text = element_text(size = 22)) +
+  labs(colour = 'Promoter activity', fill = 'Promoter activity') +
   xlab('Position') +
   labs(y = expression(bolditalic(s)))
 p_figs15c
 
 # Put the panels together
 p_figs15 <- plot_grid(p_figs15a, p_figs15b, p_figs15c, nrow = 3,
-                      label_size = 20, labels = c('A', 'B', 'C'), label_fontface = 'bold')
-ggsave(p_figs15, device = cairo_pdf, width = 21, height = 24, dpi = 300, 
+                      label_size = 40, labels = c('A', 'B', 'C'), label_fontface = 'bold', 
+                      label_y = c(1, 1.05, 1),
+                      rel_heights = c(0.8, 1.2, 1.2))
+ggsave(p_figs15, device = cairo_pdf, width = 24, height = 24, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS15_F18_P19_AF2.pdf')
-ggsave(p_figs15, device = 'png', width = 21, height = 24, dpi = 300, 
+
+ggsave(p_figs15, device = 'png', width = 24, height = 24, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS15_F18_P19_AF2.png')
 
 #### Fig. S16 ####
 
 # Predictions for the model with all variables 
-pred_rf_all <- read_delim('Data/Random_forest_results/pred_rf_allVariables.txt',
-                          delim =  '\t')
+pred_rf_all <- read_delim(
+  'Data/Random_forest_results/pred_rf_allVariables.txt',
+    delim =  '\t')
 
 # Draw the figures
 p_pred_rf_all <- pred_rf_all %>% ggplot(aes(x = pred_data, y = test_data)) +
@@ -2483,7 +2774,8 @@ p_pred_rf_all <- pred_rf_all %>% ggplot(aes(x = pred_data, y = test_data)) +
 p_pred_rf_all
 
 # Relative importances for the model with all variables (permutations)
-rel_importance_perm_all <- read_delim('Data/Random_forest_results/model_diffFit_permImportances_allVariables.txt',
+rel_importance_perm_all <- read_delim(
+  'Data/Random_forest_results/model_diffFit_permImportances_allVariables.txt',
                                       delim =  '\t') %>% arrange(desc(Importance)) %>%
   mutate(Feature = ifelse(Feature == 'random_var', 'Random variable', 
                           ifelse(Feature == 'Mean_ddG_int_HM_A_D', '\u0394\u0394G tet. interface', 
@@ -2571,10 +2863,12 @@ p_figS16 <- plot_grid(p_rel_importance, p_suppl_ml_bottom, nrow = 2, labels = c(
                         label_size = 30, label_fontface = 'bold', rel_heights = c(1.3, 0.7))
 p_figS16
 
-ggsave(p_figS16, device = cairo_pdf, width = 28, height = 24, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS16_RF_training.pdf')
-ggsave(p_figS16, device = 'png', width = 28, height = 24, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS16_RF_training.png')
+ggsave(p_figS16, device = cairo_pdf, width = 28, height = 24, dpi = 300,
+       filename = 'Figures/Supplementary_figures/Oct21/FigS16_RF_training.pdf')
+
+ggsave(p_figS16, device = 'png', width = 28, height = 24, dpi = 300,
+       filename = 'Figures/Supplementary_figures/Oct21/FigS16_RF_training.png')
+
 
 #### Figure S17: Growth curves with stop codon at first position, effect of arabinose ####
 
@@ -2620,16 +2914,16 @@ data.od1 %<>% separate(Well, into = c('Well_row', 'Well_col'), sep = 1) %>%
 # Show the growth curves
 p_figs17 <- data.od1 %>% ungroup() %>% rowwise() %>%
   mutate(TMP = str_c(TMP, ' \u00B5g/mL', sep = ''), 
-         Mutant = ifelse(Mutant == 'deltaMET', '\u0394MET', Mutant)) %>%
-  mutate(Mutant = factor(Mutant, levels = c('\u0394MET', 'WT'))) %>%
-  mutate(TMP = as.factor(TMP), Arabinose = str_c(Arabinose, '% arabinose')
+         Mutant = ifelse(Mutant == 'deltaMET', '1M*', Mutant)) %>%
+  mutate(Mutant = factor(Mutant, levels = c('1M*', 'WT'))) %>%
+  mutate(TMP = as.factor(TMP), Arabinose = str_c(Arabinose, ' % arabinose')
   ) %>%
-  mutate(Arabinose = factor(Arabinose, levels = c('0% arabinose', 
-                                                  '0.01% arabinose',
-                                                  '0.025% arabinose', 
-                                                  '0.05% arabinose',
-                                                  '0.2% arabinose', 
-                                                  '0.4% arabinose'))) %>%
+  mutate(Arabinose = factor(Arabinose, levels = c('0 % arabinose', 
+                                                  '0.01 % arabinose',
+                                                  '0.025 % arabinose', 
+                                                  '0.05 % arabinose',
+                                                  '0.2 % arabinose', 
+                                                  '0.4 % arabinose'))) %>%
   ggplot(aes(x = time, y = OD, colour = Mutant, group = interaction(Mutant, Replicate, TMP, Arabinose))) + 
   facet_wrap(~Arabinose, nrow = 2, scales = 'free') +
   geom_line() +
@@ -2644,15 +2938,17 @@ p_figs17 <- data.od1 %>% ungroup() %>% rowwise() %>%
         legend.text = element_text(size = 18), legend.justification = 0.5) +
   guides(size = 'none', linetype = 'none', alpha = 'none') +
   xlab('Time (h)') + ylim(-0.1, 6) +
-  labs(y = expression(bolditalic(OD[600]))) +
+  labs(y = expression(bolditalic(OD[600])), colour = '') +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1)))
 p_figs17
 
 ggsave(
        p_figs17, device = cairo_pdf, width = 21, height = 14, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS17.Arabinose_effect.pdf')
+
+
 ggsave(
-       p_figs17, device = 'png', width = 21, height = 14, dpi = 300, 
+       p_figs17, device = 'png', width = 21, height = 14, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS17.Arabinose_effect.png')
 
 ### Fig. S18: Heatmaps of correlations between replicates (no TMP) ####
@@ -2662,19 +2958,23 @@ all_data_all_reps_corr_TMP0 <- all_data_all_reps %>% rowwise() %>%
   group_by(Genotype) %>%
   filter(TMP == 0, Timepoint == 10)
 
-cor_matrix <- all_data_all_reps_corr_TMP0  %>% ungroup() %>%
+cor_matrix_data <- all_data_all_reps_corr_TMP0  %>% ungroup() %>%
   select(-Timepoint, -Arabinose, -TMP, -Sequencer) %>%
   pivot_wider(names_from = ID, values_from = sel_coeff) %>%
-  select(-Genotype) %>% cor(method = 'spearman')
+  select(-Genotype)
 
-# Average correlation between replicates, removing correlations with self
-cor_vector <- c()
-for(i in cor_matrix){
-  if(i != 1){
-    cor_vector <- c(cor_vector, i)
+## Remove NAs
+lines_remove <- c()
+## Remove lines that have NAs
+for(i in 1:nrow(cor_matrix_data)){
+  if(any(is.na(cor_matrix_data[i,]))){
+    lines_remove <- c(lines_remove, i)
   }
 }
-mean(cor_vector)
+
+cor_matrix_data <- cor_matrix_data[-lines_remove, ]
+
+cor_matrix <- cor_matrix_data %>% cor(method = 'spearman')
 
 annotation_df <- all_data_all_reps_corr_TMP0 %>% ungroup() %>%
   select(-sel_coeff, -Genotype) %>%
@@ -2684,42 +2984,42 @@ annotation_df <- all_data_all_reps_corr_TMP0 %>% ungroup() %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal', 
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed',
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal',
                                                         NA)))))) %>%
   mutate(exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal',
-                                                  'Optimal', 'Overexpressed')))
+                                                  'Optimal', 'Above-optimal')))
 
-ha_corr <- HeatmapAnnotation(`Expression level` = annotation_df$exp_level,
+ha_corr <- HeatmapAnnotation(`Promoter activity` = annotation_df$exp_level,
                              show_annotation_name = F,
                              annotation_name_gp = gpar(fontface = 'bold', fontsize = 14),
                              annotation_name_side = 'left',
                              show_legend = TRUE,
                              annotation_legend_param = list(
-                               `Expression level` = list(
+                               `Promoter activity` = list(
                                  title_gp = gpar(fontsize = 22, fontface = 'bold'), 
                                  labels_gp = gpar(fontsize = 20)
                                )
                              ),
-                             col = list(`Expression level` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
+                             col = list(`Promoter activity` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
                                                                "Near-optimal" = "#bd0026", "Optimal" = "#80001a", 
-                                                               'Overexpressed' = 'black')),
+                                                               'Above-optimal' = 'black')),
                              gp = gpar(col = "black")
 )
 
-ha_corr2 <- HeatmapAnnotation(`Expression level` = annotation_df$exp_level,
+ha_corr2 <- HeatmapAnnotation(`Promoter activity` = annotation_df$exp_level,
                               which = 'row',
                               show_annotation_name = F,
                               annotation_name_gp = gpar(fontface = 'bold', fontsize = 14),
                               show_legend = FALSE,
                               annotation_legend_param = list(
-                                `Expression level` = list(
+                                `Promoter activity` = list(
                                   title_gp = gpar(fontsize = 22, fontface = 'bold'), 
                                   labels_gp = gpar(fontsize = 20)
                                 )
                               ),
-                              col = list(`Expression level` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
+                              col = list(`Promoter activity` = c("Weak" = "#fed976", "Suboptimal" = "#fd8d3c", 
                                                                 "Near-optimal" = "#bd0026", "Optimal" = "#80001a", 
-                                                                'Overexpressed' = 'black')),
+                                                                'Above-optimal' = 'black')),
                               gp = gpar(col = "black")
 )
 
@@ -2727,7 +3027,6 @@ ha_corr2 <- HeatmapAnnotation(`Expression level` = annotation_df$exp_level,
 p_figS18 <- Heatmap(cor_matrix, cluster_columns = T, cluster_rows = T, 
              clustering_distance_rows = 'pearson',
              clustering_distance_columns = 'pearson',
-             ## Color ramp for the old normalized scores
              col = colorRamp2(
                breaks = seq(0, 1, length.out = 7),
                colors = c("#2166AC", "#4393C3", "#92C5DE", "#D1E5F0", "#F7F7F7", "#F4A582", "#D6604D")),
@@ -2751,7 +3050,6 @@ p_figS18 <- Heatmap(cor_matrix, cluster_columns = T, cluster_rows = T,
              },
              show_heatmap_legend = TRUE,
              heatmap_legend_param = list(
-               ## Ticks for the scale from -8 to +4
                at = c(0, 0.5, 1),
                title = 'Spearman ⍴',
                title_gp = gpar(fontsize = 20),
@@ -2764,9 +3062,10 @@ p_figS18 <- Heatmap(cor_matrix, cluster_columns = T, cluster_rows = T,
              )
 )
 p_figS18
-ggsave(grid.grabExpr(draw(p_figS18)), width = 20, height = 14, dpi = 300, device = cairo_pdf, 
+ggsave(grid.grabExpr(draw(p_figS18)), width = 20, height = 14, dpi = 300, device = cairo_pdf,
        filename = 'Figures/Supplementary_figures/FigS18.heatmap_corr_samples_noTMP.pdf')
-ggsave(grid.grabExpr(draw(p_figS18)), width = 20, height = 14, dpi = 300, device = 'png', 
+
+ggsave(grid.grabExpr(draw(p_figS18)), width = 20, height = 14, dpi = 300, device = 'png',
        filename = 'Figures/Supplementary_figures/FigS18.heatmap_corr_samples_noTMP.png')
 
 #### Fig. S19: General boxplots of DMS s values with and without TMP ####
@@ -2779,11 +3078,11 @@ p_figs19 <- all_data_complete %>% filter(Timepoint == 10) %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal',
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal',
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', 
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal', 
                                                         NA)))))) %>%
   mutate(exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal',
                                                   'Near-optimal', 'Optimal', 
-                                                  'Overexpressed'))) %>%
+                                                  'Above-optimal'))) %>%
   ggplot(aes(x = TMP, y = mean_sel_coeff, fill = exp_level)) +
   geom_point(alpha = 1, position = position_jitterdodge(jitter.width = 0.2),
              aes(colour = exp_level)) +
@@ -2800,40 +3099,42 @@ p_figs19 <- all_data_complete %>% filter(Timepoint == 10) %>%
         legend.text = element_text(size = 18), 
         legend.justification = 'center') +
   xlab('TMP (\u00B5g/mL)') +
-  labs(fill = 'Expression level', colour = 'Expression level',
+  labs(fill = 'Promoter activity', colour = 'Promoter activity',
        y = expression(bolditalic('s')))
 p_figs19
 ggsave(p_figs19, width = 14, height = 10, dpi = 300, device = cairo_pdf, 
        filename = 'Figures/Supplementary_figures/FigS19.boxplots_whole_dist_TMP_noTMP.pdf')
-ggsave(p_figs19, width = 14, height = 10, dpi = 300, device = 'png', 
+
+
+
+ggsave(p_figs19, width = 14, height = 10, dpi = 300, device = 'png',
        filename = 'Figures/Supplementary_figures/FigS19.boxplots_whole_dist_TMP_noTMP.png')
 
 #### Fig. S20: stop codons ####
-
 # Load the complete dataset
 all_data_complete_codons <- read_delim(
   'Data/Complete_datasets/complete_dataset_avgBothSequencers_Codons.txt', delim = '\t')
 
 all_data_stop_check_codons <- all_data_complete_codons %>% 
-  select(Position, WT_Codon, Codon, WT_Residue, Encoded_residues, Timepoint, Arabinose, TMP,
+  select(Position, WT_Codon, Codon, WT_Residue, Residue, Timepoint, Arabinose, TMP,
          mean_sel_coeff) %>% 
   filter(Codon != WT_Codon, Codon != 'TAG') %>%
-  mutate(mut_check = ifelse(Encoded_residues == WT_Residue, 'Synonymous',
+  mutate(mut_check = ifelse(Residue == WT_Residue, 'Synonymous',
                             ifelse(Codon %in% c('TAA', 'TGA'), 'Stop',
                                    'AA\nsubstitution'))) %>%
   filter(Timepoint == 10) %>%
   mutate(TMP = str_c('TMP = ', TMP, ' \u00B5g/mL', sep = ''), 
          Timepoint = str_c('Time = ', Timepoint, ' generations'), 
-         exp_level = ifelse(Arabinose == 0.01, 'Weak expression', 
-                            ifelse(Arabinose == 0.025, 'Suboptimal expression', 
-                                   ifelse(Arabinose == 0.05, 'Near-optimal expression', 
-                                          ifelse(Arabinose == 0.2, 'Optimal expression',
-                                                 ifelse(Arabinose == 0.4, 'Overexpression', 
+         exp_level = ifelse(Arabinose == 0.01, 'Weak\npromoter activity', 
+                            ifelse(Arabinose == 0.025, 'Suboptimal\npromoter activity', 
+                                   ifelse(Arabinose == 0.05, 'Near-optimal\npromoter activity', 
+                                          ifelse(Arabinose == 0.2, 'Optimal\npromoter activity',
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal\npromoter activity', 
                                                         NA)))))
   ) %>%
-  mutate(exp_level = factor(exp_level, levels = c('Weak expression', 'Suboptimal expression',
-                                                  'Near-optimal expression', 'Optimal expression', 
-                                                  'Overexpression'))) %>%
+  mutate(exp_level = factor(exp_level, levels = c('Weak\npromoter activity', 'Suboptimal\npromoter activity',
+                                                  'Near-optimal\npromoter activity', 'Optimal\npromoter activity', 
+                                                  'Above-optimal\npromoter activity'))) %>%
   mutate(mut_check = factor(mut_check, levels = c('Stop',
                                                   'AA\nsubstitution',
                                                   'Synonymous')))
@@ -2870,23 +3171,23 @@ p_figs20 <- all_data_stop_check_codons %>% rowwise() %>%
         axis.line = element_line()) +
   ylim(-0.9, 1.1)
 p_figs20
-ggsave(p_figs20, width = 32, height = 14, device = cairo_pdf, dpi = 300, 
+ggsave(p_figs20, width = 32, height = 14, device = cairo_pdf, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS20_Stop_vs_WT_codons.pdf')
+
 ggsave(p_figs20, width = 32, height = 14, device = 'png', dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS20_Stop_vs_WT_codons.png')
 
 #### Figure S21: GEMME vs DMS (without TMP) ####
-
 p_figS21 <- gemme_vs_dms_plot %>% rowwise() %>% 
-  mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak expression', 
-                            ifelse(Arabinose == 0.025, 'Suboptimal expression', 
-                                   ifelse(Arabinose == 0.05, 'Near-optimal expression', 
-                                          ifelse(Arabinose == 0.2, 'Optimal expression',
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', 
+  mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak\npromoter activity', 
+                            ifelse(Arabinose == 0.025, 'Suboptimal\npromoter activity', 
+                                   ifelse(Arabinose == 0.05, 'Near-optimal\npromoter activity', 
+                                          ifelse(Arabinose == 0.2, 'Optimal\npromoter activity',
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal\npromoter activity', 
                                                         NA)))))) %>%
-  mutate(exp_level = factor(exp_level, levels = c('Weak expression', 'Suboptimal expression', 
-                                                  'Near-optimal expression', 'Optimal expression', 
-                                                  'Overexpressed'))) %>%
+  mutate(exp_level = factor(exp_level, levels = c('Weak\npromoter activity', 'Suboptimal\npromoter activity', 
+                                                  'Near-optimal\npromoter activity', 'Optimal\npromoter activity', 
+                                                  'Above-optimal\npromoter activity'))) %>%
   filter(TMP == 0) %>%
   mutate(Arabinose = str_c(toString(Arabinose), '% arabinose', sep = '')) %>%
   ggplot(aes(x = Fitness, y = mean_sel_coeff)) + 
@@ -2904,9 +3205,12 @@ p_figS21 <- gemme_vs_dms_plot %>% rowwise() %>%
   geom_smooth(method = 'lm', show.legend = F) +
   ylim(-0.1, 0.2)
 p_figS21
-ggsave(plot = p_figS21, device = cairo_pdf, width = 14, height = 17, dpi = 300, 
+ggsave(plot = p_figS21, device = cairo_pdf, width = 14, height = 17, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS21_GEMME_noTMP.pdf')
-ggsave(plot = p_figS21, device = 'png', width = 14, height = 17, dpi = 300, 
+
+
+
+ggsave(plot = p_figS21, device = 'png', width = 14, height = 17, dpi = 300,
        filename = 'Figures/Supplementary_figures/FigS21_GEMME_noTMP.png')
 
 #### Fig. S22: Destabilization of DfrB1 does not result in deleterious effects ####
@@ -2919,62 +3223,13 @@ all_data_complete_new <- all_data_complete %>% filter(TMP == 0, Timepoint == 10)
   mutate(ID = ifelse(ID == '2EE_0.01', 'WT_0.01', ID)) %>%
   mutate(ID = ifelse(ID == '2EE_0.2', 'WT_0.2', ID))
 
-## Reload the data for the validated mutants
-# Read data for selected mutants
-file.od <- 'Data/Growth_curves/14_07_21_bact.xlsx'
-plate.ind <- 'Data/Growth_curves/Mutant_id_validation_DMS_growth_curves_IGA_14_07_21_no_empty.csv'
-
-# function to process plates ----------------------------------------------
-read.my.gc <- function(file, plate.index){
-  pl <- read.xlsx(file,sheetIndex = 1, rowIndex = 4:99, stringsAsfators = FALSE,
-                  header = F)
-  ind <- read.csv2(plate.index, stringsAsFactors = FALSE, fileEncoding = "UTF-8-BOM")
-  time <- seq(0,0.30*(ncol(pl)-2), 0.30)
-  
-  colnames(pl)[1] <- "Well"
-  colnames(pl)[2:ncol(pl)] <- time
-  pl %<>% select(1:(ncol(pl)-2)) 
-  
-  data.pl <- gather(pl, key = "time", value = "OD",2:ncol(pl), convert = F)
-  data.pl$time <- as.numeric(data.pl$time)
-  data.pl$OD <- as.numeric(data.pl$OD)
-  data.pl %<>% left_join(ind, by = "Well")
-  
-  d <-  select(data.pl, 1:3)
-  d %<>% spread(key = "Well", value = "OD", convert = F) 
-  colnames(d)[1] <- "time"
-  
-  ## Use Growthcurver as follows
-  gc_out <- SummarizeGrowthByPlate(d, t_trim =14.4)
-  colnames(gc_out)[1] <- "Well"
-  data.pl %<>% left_join(gc_out, by = "Well")
-}
-
-data.od1 <- read.my.gc(file.od, plate.ind)
-
-data.od1.new <- data.od1 %>% 
-  rowwise() %>%
-  mutate(ID = str_c(Mutant, Arabinose, sep = '_')) %>%
-  group_by(ID, TMP) %>%
-  summarise(k = mean(k),
-            n0 = mean(n0),
-            r = mean(r),
-            t_mid = mean(t_mid),
-            t_gen = mean(t_gen),
-            auc_l = mean(auc_l),
-            auc_e = mean(auc_e),
-            sigma = mean(sigma))
-
-joined_sets <- inner_join(x = all_data_complete_new, 
-                          y = data.od1.new %>% filter(TMP == 0),
-                          by = c('ID' = 'ID')) %>%
-  mutate(Arabinose = as.factor(Arabinose))
-
-joined_sets %<>% mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak', 
+# joined_sets %<>% 
+joined_sets <- all_data_complete_new %>%
+  mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak', 
                                            ifelse(Arabinose == 0.025, 'Suboptimal', 
                                                   ifelse(Arabinose == 0.05, 'Near-optimal', 
                                                          ifelse(Arabinose == 0.2, 'Optimal',
-                                                                ifelse(Arabinose == 0.4, 'Overexpressed', NA))))))
+                                                                ifelse(Arabinose == 0.4, 'Above-optimal', NA))))))
 
 # Mutants to annotate
 list_mut <- joined_sets %>% select(Position, WT_Residue, Residue) %>% ungroup() %>%
@@ -3006,16 +3261,6 @@ data_fig_4a_final <- left_join(x = data_part_1, y = data_part_2,
 ) %>% 
   mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
 
-mutants_highlight <- data_fig_4a_final %>% rowwise() %>%
-  mutate(mut_check = ifelse(Residue == WT_Residue, 'WT',
-                            ifelse(Residue == '*', 'Stop', 'Missense')), 
-         Genotype = str_c(WT_Residue, Position, Residue, sep = '')) %>%
-  filter(Genotype %in% list_mut$Genotype)
-
-# Rename WT
-list_mut %<>% mutate(Genotype = ifelse(Genotype == 'E2E', 'WT', Genotype))
-mutants_highlight %<>% mutate(Genotype = ifelse(Genotype == 'E2E', 'WT', Genotype))
-
 # Get data to represent the stop and WT codons
 summary_wt_stop <- data_fig_4a_final %>% rowwise() %>% ungroup() %>%
   mutate(mut_check = ifelse(Residue == WT_Residue, 'WT',
@@ -3033,28 +3278,17 @@ data_fig4a <- data_fig_4a_final %>% rowwise() %>%
                             ifelse(Residue == '*', 'Stop', 'Missense'))) %>%
   filter(mut_check %in% c('Missense', 'WT')) %>% 
   mutate(sem_s = 0, sem_ds = 0) %>% # These are single points
-  select(mut_check, mean_sel_coeff, sem_s, diffNormScore, sem_ds, 
+  select(Position, WT_Residue, Residue,
+    mut_check, mean_sel_coeff, sem_s, diffNormScore, sem_ds, 
          Mean_ddG_stab_HET, Mean_ddG_int_HM_A_C, Mean_ddG_int_HM_A_D) %>%
   ungroup()
 
-colnames(data_fig4a) <- c('mut_check', 'mean_s','sem_s', 'mean_ds', 'sem_ds', 
+colnames(data_fig4a) <- c('Position', 'WT_Residue', 'Residue',
+  'mut_check', 'mean_s','sem_s', 'mean_ds', 'sem_ds', 
                           'ddG_stab', 'ddG_dim_int', 'ddG_tet_int')
 
-data_fig_4a <- rbind(data_fig4a, summary_wt_stop)
-
-## Rename the column for mutants to highlight
-mut_ht_wt <- mutants_highlight %>% filter(Genotype == 'WT') %>%
-  rowwise() %>%
-  # Set mean_s and mean_ds for the WT to zero to annotate the corresponding point
-  mutate(mean_s = ifelse(Genotype == 'WT', 0, mean_s), 
-         mean_ds = ifelse(Genotype == 'WT', 0, mean_ds))
-mutants_highlight %<>% mutate(mean_s = mean_sel_coeff, mean_ds = diffNormScore) %>% 
-  filter(!(is.na(Mean_ddG_stab_HET))) 
-
-mutants_highlight <- bind_rows(mut_ht_wt, mutants_highlight)
-
 # Add bins of ddG values
-data_fig_4a %<>%
+data_fig4a %<>%
   mutate(bins_stab = cut(ddG_stab, breaks = c(-40, 0, 1, 2, 5, 100),
                          include.lowest = TRUE, na.rm = TRUE), 
          bins_dim_int = cut(ddG_dim_int, breaks = c(-40, 0, 1, 2, 5, 100),
@@ -3065,31 +3299,34 @@ data_fig_4a %<>%
                bins_dim_int = as.character(bins_dim_int), 
                bins_tet_int = as.character(bins_tet_int)) %>%
   # Rename bins
-  mutate(bins_stab = ifelse(bins_stab == '[-40,0]', '< 0', 
+  mutate( bins_stab = ifelse(Position <= 20, 'IDR', bins_stab), 
+          bins_dim_int = ifelse(Position <= 20, 'IDR', bins_dim_int), 
+          bins_tet_int = ifelse(Position <= 20, 'IDR', bins_tet_int), 
+          
+  ) %>%
+  mutate(bins_stab = ifelse(bins_stab == '[-40,0]', '<= 0', 
                             ifelse(bins_stab == '(5,100]', '> 5', bins_stab)), 
-         bins_dim_int = ifelse(bins_dim_int == '[-40,0]', '< 0',
+         bins_dim_int = ifelse(bins_dim_int == '[-40,0]', '<= 0',
                                ifelse(bins_dim_int == '(5,100]', '> 5', bins_dim_int)), 
-         bins_tet_int = ifelse(bins_tet_int == '[-40,0]', '< 0',
+         bins_tet_int = ifelse(bins_tet_int == '[-40,0]', '<= 0',
                                ifelse(bins_tet_int == '(5,100]', '> 5', bins_tet_int))) %>%
-  mutate(bins_stab = factor(bins_stab, levels = c('< 0', '(0,1]', '(1,2]', '(2,5]', '> 5')),
-         bins_dim_int = factor(bins_dim_int, levels = c('< 0', '(0,1]', '(1,2]', '(2,5]', '> 5')), 
-         bins_tet_int = factor(bins_tet_int, levels = c('< 0', '(0,1]', '(1,2]', '(2,5]', '> 5'))
+  mutate(bins_stab = factor(bins_stab, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')),
+         bins_dim_int = factor(bins_dim_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')), 
+         bins_tet_int = factor(bins_tet_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5'))
   )
 
-table(data_fig_4a$bins_stab)
-table(data_fig_4a$bins_dim_int)
-table(data_fig_4a$bins_tet_int)
+table(data_fig4a$bins_stab)
+table(data_fig4a$bins_dim_int)
+table(data_fig4a$bins_tet_int)
 
 # Draw the figure for ddG stability
-p_figs22_stab <- data_fig_4a %>% rowwise() %>%
+p_figs22_stab <- data_fig4a %>% rowwise() %>%
   filter(!(is.na(bins_stab))) %>%
   ggplot(aes(x = mean_s, y = mean_ds)) +
   geom_hline(yintercept = 0, linetype = 'dashed', size = 1) +
   geom_point(aes(colour = bins_stab), size = 3) +
-  geom_label_repel(data = mutants_highlight, aes(label = Genotype), 
-                   box.padding = 0.4, size = 6, fontface = 'bold') +
   guides(size = 'none', alpha = 'none') +
-  scale_colour_manual(values = c('#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f')) +
+  scale_colour_manual(values = c('grey', '#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f')) +
   theme(
     axis.title.x = element_text(face = 'bold', size = 26), 
     axis.title.y = element_text(face = 'bold', size = 32),
@@ -3105,25 +3342,24 @@ p_figs22_stab <- data_fig_4a %>% rowwise() %>%
   annotate('text', x = 0.07, y = -0.025, 
            label = expression(italic(s[weak] < s[opt])), parse = T, size = 10) +
   labs(colour = expression(paste(bold('\u0394\u0394'), bolditalic('G'),
-                                 bold(' subunit stability [kcal / mol]'), sep = '')),
+                                 bold(' subunit stability [kcal/mol]'), sep = '')),
        y = expression(paste(bold('\u0394'), bolditalic(s[weak]), bold(' ('), 
                             bolditalic(s[weak]), bold(' - '), bolditalic(s[opt]),
                             bold(')'), sep = '')), 
-       x = expression(paste(bolditalic('s'), bold(' (optimal expression)'), sep =  ''))) +
+       x = expression(paste(bolditalic('s'), bold(' (optimal promoter activity)'), sep =  ''))) +
   guides(colour = guide_legend(title.position = 'top', 
-                               title.hjust = 0.5))
+                               title.hjust = 0.5, 
+                               nrow = 1))
 p_figs22_stab
 
 # Draw the figure for ddG dim int
-p_figs22_dim_int <- data_fig_4a %>% rowwise() %>%
+p_figs22_dim_int <- data_fig4a %>% rowwise() %>%
   filter(!(is.na(bins_dim_int))) %>%
   ggplot(aes(x = mean_s, y = mean_ds)) +
   geom_hline(yintercept = 0, linetype = 'dashed', size = 1) +
   geom_point(aes(colour = bins_dim_int), size = 3) +
-  geom_label_repel(data = mutants_highlight, aes(label = Genotype), 
-                   box.padding = 0.4, size = 6, fontface = 'bold') +
   guides(size = 'none', alpha = 'none') +
-  scale_colour_manual(values = c('#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f')) +
+  scale_colour_manual(values = c('grey', '#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f')) +
   theme(
     axis.title.x = element_text(face = 'bold', size = 26), 
     axis.title.y = element_text(face = 'bold', size = 32),
@@ -3139,27 +3375,26 @@ p_figs22_dim_int <- data_fig_4a %>% rowwise() %>%
   annotate('text', x = 0.07, y = -0.025, 
            label = expression(italic(s[weak] < s[opt])), parse = T, size = 10) +
   labs(colour = expression(paste(bold('\u0394\u0394'), bolditalic('G'),
-                                 bold(' dim. interface [kcal / mol]'), sep = '')),
+                                 bold(' dim. interface [kcal/mol]'), sep = '')),
        y = expression(paste(bold('\u0394'), bolditalic(s[weak]), bold(' ('), 
                             bolditalic(s[weak]), bold(' - '), bolditalic(s[opt]),
                             bold(')'), sep = '')), 
-       x = expression(paste(bolditalic('s'), bold(' (optimal expression)'), sep =  ''))) +
+       x = expression(paste(bolditalic('s'), bold(' (optimal promoter activity)'), sep =  ''))) +
   
   guides(colour = guide_legend(title.position = 'top', 
-                               title.hjust = 0.5))
+                               title.hjust = 0.5, 
+                               nrow = 1))
 
 p_figs22_dim_int
 
 # Draw the figure for ddG tet int
-p_figs22_tet_int <- data_fig_4a %>% rowwise() %>%
+p_figs22_tet_int <- data_fig4a %>% rowwise() %>%
   filter(!(is.na(bins_tet_int))) %>%
   ggplot(aes(x = mean_s, y = mean_ds)) +
   geom_hline(yintercept = 0, linetype = 'dashed', size = 1) +
   geom_point(aes(colour = bins_tet_int), size =3) +
-  geom_label_repel(data = mutants_highlight, aes(label = Genotype), 
-                   box.padding = 0.4, size = 6, fontface = 'bold') +
   guides(size = 'none', alpha = 'none') +
-  scale_colour_manual(values = c('#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f')) +
+  scale_colour_manual(values = c('grey', '#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f')) +
   theme(
     axis.title.x = element_text(face = 'bold', size = 26), 
     axis.title.y = element_text(face = 'bold', size = 32),
@@ -3175,45 +3410,75 @@ p_figs22_tet_int <- data_fig_4a %>% rowwise() %>%
   annotate('text', x = 0.07, y = -0.025, 
            label = expression(italic(s[weak] < s[opt])), parse = T, size = 10) +
   labs(colour = expression(paste(bold('\u0394\u0394'), bolditalic('G'),
-                                 bold(' tet. interface [kcal / mol]'), sep = '')),
+                                 bold(' tet. interface [kcal/mol]'), sep = '')),
        y = expression(paste(bold('\u0394'), bolditalic(s[weak]), bold(' ('), 
                             bolditalic(s[weak]), bold(' - '), bolditalic(s[opt]),
                             bold(')'), sep = '')), 
-       x = expression(paste(bolditalic('s'), bold(' (optimal expression)'), sep =  ''))) +
+       x = expression(paste(bolditalic('s'), bold(' (optimal promoter activity)'), sep =  ''))) +
   guides(colour = guide_legend(title.position = 'top', 
-                               title.hjust = 0.5))
+                               title.hjust = 0.5, 
+                               nrow = 1))
 p_figs22_tet_int
 
-#### Test the association between s and ddG ####
-## Use a generalized linear model
+## Load the average fluorescence for each expression level
+exp_values <- read_delim(file = 'Data/expression_levels.tsv', delim = '\t', col_names = T)
+colnames(exp_values) <- c('Arabinose', 'exp_level', 'exp_level_value')
+
 data_glm_tmp <- all_data_complete %>% 
   filter(TMP == 10, !(is.na(Mean_ddG_stab_HET)), !(is.na(Mean_ddG_int_HM_A_C)), 
          !(is.na(Mean_ddG_int_HM_A_D)))
-glm.fit <- glm(formula = mean_sel_coeff ~ Arabinose + Mean_ddG_stab_HET + 
-                 Mean_ddG_int_HM_A_C + Mean_ddG_int_HM_A_D +
-                 Arabinose*Mean_ddG_stab_HET +
-                 Arabinose*Mean_ddG_int_HM_A_C +
-                 Arabinose*Mean_ddG_int_HM_A_D,
-               data = data_glm_tmp)
-summary(glm.fit)
 
-data_glm_notmp <- all_data_complete %>% 
-  filter(TMP == 0, !(is.na(Mean_ddG_stab_HET)), !(is.na(Mean_ddG_int_HM_A_C)), 
-         !(is.na(Mean_ddG_int_HM_A_D)))
-glm.fit_notmp <- glm(formula = mean_sel_coeff ~ Arabinose + Mean_ddG_stab_HET + 
-                 Mean_ddG_int_HM_A_C + Mean_ddG_int_HM_A_D +
-                 Arabinose*Mean_ddG_stab_HET +
-                 Arabinose*Mean_ddG_int_HM_A_C +
-                 Arabinose*Mean_ddG_int_HM_A_D,
-               data = data_glm_notmp)
-summary(glm.fit_notmp)
+data_glm_tmp_bins <- data_glm_tmp %>%
+  mutate(ddG_stab = Mean_ddG_stab_HET, ddG_dim_int = Mean_ddG_int_HM_A_C, 
+         ddG_tet_int = Mean_ddG_int_HM_A_D) %>%
+  mutate(bins_stab = cut(ddG_stab, breaks = c(-40, 0, 1, 2, 5, 100),
+                         include.lowest = TRUE, na.rm = TRUE), 
+         bins_dim_int = cut(ddG_dim_int, breaks = c(-40, 0, 1, 2, 5, 100),
+                            include.lowest = TRUE, na.rm = TRUE),
+         bins_tet_int = cut(ddG_tet_int, breaks = c(-40, 0, 1, 2, 5, 100),
+                            include.lowest = TRUE, na.rm = TRUE)
+  ) %>% mutate(bins_stab = as.character(bins_stab), 
+               bins_dim_int = as.character(bins_dim_int), 
+               bins_tet_int = as.character(bins_tet_int)) %>%
+  # Rename bins
+  mutate( bins_stab = ifelse(Position <= 20, 'IDR', bins_stab), 
+          bins_dim_int = ifelse(Position <= 20, 'IDR', bins_dim_int), 
+          bins_tet_int = ifelse(Position <= 20, 'IDR', bins_tet_int), 
+          
+  ) %>%
+  mutate(bins_stab = ifelse(bins_stab == '[-40,0]', '<= 0', 
+                            ifelse(bins_stab == '(5,100]', '> 5', bins_stab)), 
+         bins_dim_int = ifelse(bins_dim_int == '[-40,0]', '<= 0',
+                               ifelse(bins_dim_int == '(5,100]', '> 5', bins_dim_int)), 
+         bins_tet_int = ifelse(bins_tet_int == '[-40,0]', '<= 0',
+                               ifelse(bins_tet_int == '(5,100]', '> 5', bins_tet_int))) %>%
+  mutate(bins_stab = factor(bins_stab, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')),
+         bins_dim_int = factor(bins_dim_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')), 
+         bins_tet_int = factor(bins_tet_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5'))
+  )
 
-#### Figure S22B: Like figure 4B but without TMP ####
+data_glm_tmp_bins <- left_join(x = data_glm_tmp_bins, y = exp_values, 
+                          by = ('Arabinose' = 'Arabinose'))
+
+## Try with a four-way ANOVA ##
+data_glm_tmp_bins %<>% mutate(bins_stab = factor(bins_stab, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')), 
+                              bins_dim_int = factor(bins_dim_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')), 
+                              bins_tet_int = factor(bins_tet_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5')))
+
+m <- aov(mean_sel_coeff~exp_level + bins_stab + bins_dim_int + bins_tet_int +
+           exp_level*bins_stab + exp_level*bins_dim_int + exp_level*bins_tet_int,
+         data=data_glm_tmp_bins)
+anova_test <- anova(m)
+tukey_test <- HSD.test(m, trt = 'exp_level')
+tukey_test2 <- TukeyHSD(m)
+
+#### Figure S22B ####
 
 ddg_sel_coeff_data <- all_data_complete %>% 
   select(Position, WT_Residue, Residue, Timepoint, Arabinose, TMP, mean_sel_coeff, 
          Mean_ddG_stab_HET, Mean_ddG_int_HM_A_C, Mean_ddG_int_HM_A_D) %>%
-  filter(!(is.na(Mean_ddG_stab_HET)), Timepoint == 10, TMP == 0)
+  filter(# !(is.na(Mean_ddG_stab_HET)),
+         Timepoint == 10, TMP == 0, Residue != '*')
 
 summary(ddg_sel_coeff_data$Mean_ddG_int_HM_A_C)
 summary(ddg_sel_coeff_data$Mean_ddG_int_HM_A_D)
@@ -3230,21 +3495,37 @@ ddg_sel_coeff_data %<>%
   ) %>% mutate(bins_stab = as.character(bins_stab), 
                bins_dim_int = as.character(bins_dim_int), 
                bins_tet_int = as.character(bins_tet_int)) %>%
+  mutate(bins_stab = ifelse(Position <= 20, 'IDR', bins_stab), 
+         bins_dim_int = ifelse(Position <= 20, 'IDR', bins_dim_int), 
+         bins_tet_int = ifelse(Position <= 20, 'IDR',  bins_tet_int)) %>%
   # Rename bins
-  mutate(bins_stab = ifelse(bins_stab == '[-40,0]', '< 0', 
+  mutate(bins_stab = ifelse(bins_stab == '[-40,0]', '<= 0', 
                             ifelse(bins_stab == '(5,100]', '> 5', bins_stab)), 
-         bins_dim_int = ifelse(bins_dim_int == '[-40,0]', '< 0',
+         bins_dim_int = ifelse(bins_dim_int == '[-40,0]', '<= 0',
                                ifelse(bins_dim_int == '(5,100]', '> 5', bins_dim_int)), 
-         bins_tet_int = ifelse(bins_tet_int == '[-40,0]', '< 0',
+         bins_tet_int = ifelse(bins_tet_int == '[-40,0]', '<= 0',
                                ifelse(bins_tet_int == '(5,100]', '> 5', bins_tet_int))) %>%
   mutate(exp_level = ifelse(Arabinose == 0.01, 'Weak', 
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal', 
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', 
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal', 
                                                         NA)))))) %>%
   mutate(exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal', 
-                                                  'Optimal', 'Overexpressed')))
+                                                  'Optimal', 'Above-optimal')))
+
+mutations_stab <- ddg_sel_coeff_data %>%
+  filter(or(bins_stab == 'IDR', 
+            and(abs(Mean_ddG_int_HM_A_C) < 0.5, abs(Mean_ddG_int_HM_A_D) < 0.5)))
+
+mutations_dim_int <- ddg_sel_coeff_data %>% 
+  filter(or(bins_dim_int == 'IDR', 
+            and(abs(Mean_ddG_stab_HET) < 0.5, abs(Mean_ddG_int_HM_A_D) < 0.5)))
+
+mutations_tet_int <- ddg_sel_coeff_data %>% 
+  filter(or(bins_tet_int == 'IDR',
+            and(abs(Mean_ddG_stab_HET) < 0.5, abs(Mean_ddG_int_HM_A_C) < 0.5)))
+
 
 ### Add a category of nonsense mutants
 nonsense_mutants_notmp <- all_data_complete %>%
@@ -3253,34 +3534,66 @@ nonsense_mutants_notmp <- all_data_complete %>%
                             ifelse(Arabinose == 0.025, 'Suboptimal', 
                                    ifelse(Arabinose == 0.05, 'Near-optimal', 
                                           ifelse(Arabinose == 0.2, 'Optimal', 
-                                                 ifelse(Arabinose == 0.4, 'Overexpressed', 
+                                                 ifelse(Arabinose == 0.4, 'Above-optimal', 
                                                         NA))))), 
          bins_stab = 'Stop', bins_dim_int = 'Stop', bins_tet_int = 'Stop') %>% 
   select(Position, WT_Residue, Residue, Timepoint, Arabinose, TMP, mean_sel_coeff, 
          Mean_ddG_stab_HET, Mean_ddG_int_HM_A_C, Mean_ddG_int_HM_A_D, 
          bins_stab, bins_dim_int, bins_tet_int, exp_level)
 
-ddg_sel_coeff_data <- bind_rows(ddg_sel_coeff_data, nonsense_mutants_notmp) %>%
+
+# Final data frame for the figure on ddG_stab bins
+mutations_stab_final <- bind_rows(mutations_stab %>% ungroup() %>%
+                                    select(-Mean_ddG_stab_HET, -Mean_ddG_int_HM_A_C,
+                                           -Mean_ddG_int_HM_A_D),
+                                  nonsense_mutants_notmp %>% ungroup() %>%
+                                    select(-Mean_ddG_stab_HET, -Mean_ddG_int_HM_A_C,
+                                           -Mean_ddG_int_HM_A_D)) %>% 
   mutate(
-    bins_stab = factor(bins_stab, levels = c('< 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')),
-    bins_dim_int = factor(bins_dim_int, levels = c('< 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
-    bins_tet_int = factor(bins_tet_int, levels = c('< 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
+    bins_stab = factor(bins_stab, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')),
+    bins_dim_int = factor(bins_dim_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
+    bins_tet_int = factor(bins_tet_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
     exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal', 
-                                             'Optimal', 'Overexpressed'))
+                                             'Optimal', 'Above-optimal'))
   )
 
+## Remove mutations that do not appear at all expression levels
+mutations_stab_final_wide <- mutations_stab_final %>% ungroup() %>%
+  select(-bins_tet_int, -bins_dim_int, -Arabinose) %>%
+  pivot_wider(names_from = exp_level, values_from = mean_sel_coeff)
+
+lines_remove <- c()
+for(i in 1:nrow(mutations_stab_final_wide)){
+  if(any(is.na(mutations_stab_final_wide[i,]))){
+    lines_remove <- c(lines_remove, i)
+  }
+}
+
+mutations_stab_final_wide_new <- mutations_stab_final_wide[-lines_remove, ]
+
+mutations_stab_final_new <- mutations_stab_final_wide_new %>%
+  pivot_longer(cols = c('Weak', 'Suboptimal', 'Near-optimal', 'Optimal', 'Above-optimal'), 
+               names_to = 'exp_level', values_to = 'mean_sel_coeff')
+
+mut_counts_stab <- table(mutations_stab_final_new$bins_stab) / 5
+mut_counts_stab <- as.data.frame(t(mut_counts_stab))
+
 # Draw the figure for subunit stability
-p_figs22B_stab <- ddg_sel_coeff_data %>% 
+p_figs22B_stab <-
+  mutations_stab_final_new  %>%
+  filter(Position != 21) %>% # Position 21 is mutated in the PDB structure
   ggplot(aes(x = bins_stab, y = mean_sel_coeff, fill = exp_level, colour = exp_level)) + 
   geom_boxplot(alpha = 0.4) +
   labs(y = expression(bolditalic('s')),
        x = expression(paste(bold('\u0394\u0394'), bolditalic('G'), 
-                            bold(' subunit stability [kcal / mol]')))) +
+                            bold(' subunit stability [kcal/mol]')))) +
   scale_fill_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'),
-                    name = 'Expression level') +
+                    name = 'Promoter activity') +
   scale_colour_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'), 
-                      name = 'Expression level') +
-  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0), limits = c(-1, 0.2)) +
+                      name = 'Promoter activity') +
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0),
+                     limits = c(-1, 0.2)) +
+                     # limits = c(-1, 1)) +
   theme(axis.text.y = element_text(size = 22),
         axis.text.x = element_text(size = 22),
         axis.title = element_text(size = 24, face = 'bold'), 
@@ -3290,20 +3603,63 @@ p_figs22B_stab <- ddg_sel_coeff_data %>%
         legend.justification = 'center',
         legend.title = element_text(size = 20), 
         legend.text = element_text(size = 18)
-  )
+  ) +
+  geom_text(inherit.aes = F, data = mut_counts_stab,
+            aes(x = Var2, label = str_c('n = ', Freq, sep = '')),
+            y = -0.85, size = 7)
 p_figs22B_stab
 
+# Final data frame for the figure on ddG_dim_int bins
+mutations_dim_int_final <- bind_rows(mutations_dim_int %>% ungroup() %>%
+                                       select(-Mean_ddG_stab_HET, -Mean_ddG_int_HM_A_C,
+                                              -Mean_ddG_int_HM_A_D),
+                                     nonsense_mutants_notmp %>% ungroup() %>%
+                                       select(-Mean_ddG_stab_HET, -Mean_ddG_int_HM_A_C,
+                                              -Mean_ddG_int_HM_A_D)) %>% 
+  mutate(
+    bins_stab = factor(bins_stab, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')),
+    bins_dim_int = factor(bins_dim_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
+    bins_tet_int = factor(bins_tet_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
+    exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal', 
+                                             'Optimal', 'Above-optimal'))
+  )
+
+## Remove mutations that do not appear at all expression levels
+mutations_dim_int_final_wide <- mutations_dim_int_final %>% ungroup() %>%
+  select(-bins_tet_int, -bins_stab, -Arabinose) %>%
+  pivot_wider(names_from = exp_level, values_from = mean_sel_coeff)
+
+lines_remove <- c()
+for(i in 1:nrow(mutations_dim_int_final_wide)){
+  if(any(is.na(mutations_dim_int_final_wide[i,]))){
+    lines_remove <- c(lines_remove, i)
+  }
+}
+
+## lines_remove is empty so we don't need to do this
+# mutations_dim_int_final_wide_new <- mutations_dim_int_final_wide[-lines_remove, ]
+
+mutations_dim_int_final_new <- mutations_dim_int_final_wide %>%
+  pivot_longer(cols = c('Weak', 'Suboptimal', 'Near-optimal', 'Optimal', 'Above-optimal'), 
+               names_to = 'exp_level', values_to = 'mean_sel_coeff')
+
+mut_counts_dim_int <- table(mutations_dim_int_final_new$bins_dim_int) / 5
+mut_counts_dim_int <- as.data.frame(t(mut_counts_dim_int))
+
+
 # Draw the figure for the dimerization interface
-p_figs22B_dim_int <- ddg_sel_coeff_data %>% 
+p_figs22B_dim_int <-
+  mutations_dim_int_final %>%
+  filter(Position != 21) %>% # Position 21 is mutated in the PDB structure
   ggplot(aes(x = bins_dim_int, y = mean_sel_coeff, fill = exp_level, colour = exp_level)) + 
   geom_boxplot(alpha = 0.4) +
   labs(y = expression(bolditalic('s')),
        x = expression(paste(bold('\u0394\u0394'), bolditalic('G'), 
-                            bold(' dim. interface [kcal / mol]')))) +
+                            bold(' dim. interface [kcal/mol]')))) +
   scale_fill_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'),
-                    name = 'Expression level') +
+                    name = 'Promoter activity') +
   scale_colour_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'),
-                      name = 'Expression level') +
+                      name = 'Promoter activity') +
   theme(axis.text.y = element_text(size = 22),
         axis.text.x = element_text(size = 22),
         axis.title = element_text(size = 24, face = 'bold'), 
@@ -3313,20 +3669,63 @@ p_figs22B_dim_int <- ddg_sel_coeff_data %>%
         legend.title = element_text(size = 20), 
         legend.text = element_text(size = 18)
   ) +
-  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0), limits = c(-1, 0.2))
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0), limits = c(-1, 0.2)) +
+  geom_text(inherit.aes = F, data = mut_counts_dim_int,
+            aes(x = Var2, label = str_c('n = ', Freq, sep = '')),
+            y = -0.85, size = 7)
 p_figs22B_dim_int
 
-# Draw the figure for the dimerization interface
-p_figs22B_tet_int <- ddg_sel_coeff_data %>% 
+# Final data frame for the figure on ddG_dim_int bins
+mutations_tet_int_final <- bind_rows(mutations_tet_int %>% ungroup() %>%
+                                       select(-Mean_ddG_stab_HET, -Mean_ddG_int_HM_A_C,
+                                              -Mean_ddG_int_HM_A_D),
+                                     nonsense_mutants_notmp %>% ungroup() %>%
+                                       select(-Mean_ddG_stab_HET, -Mean_ddG_int_HM_A_C,
+                                              -Mean_ddG_int_HM_A_D)) %>% 
+  mutate(
+    bins_stab = factor(bins_stab, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')),
+    bins_dim_int = factor(bins_dim_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
+    bins_tet_int = factor(bins_tet_int, levels = c('IDR', '<= 0', '(0,1]', '(1,2]', '(2,5]', '> 5', 'Stop')), 
+    exp_level = factor(exp_level, levels = c('Weak', 'Suboptimal', 'Near-optimal', 
+                                             'Optimal', 'Above-optimal'))
+  )
+
+## Remove mutations that do not appear at all expression levels
+mutations_tet_int_final_wide <- mutations_tet_int_final %>% ungroup() %>%
+  select(-bins_dim_int, -bins_stab, -Arabinose) %>%
+  pivot_wider(names_from = exp_level, values_from = mean_sel_coeff)
+
+lines_remove <- c()
+for(i in 1:nrow(mutations_tet_int_final_wide)){
+  if(any(is.na(mutations_tet_int_final_wide[i,]))){
+    lines_remove <- c(lines_remove, i)
+  }
+}
+
+## lines_remove is empty so we don't need to do this
+# mutations_tet_int_final_wide_new <- mutations_tet_int_final_wide[-lines_remove, ]
+
+mutations_tet_int_final_new <- mutations_tet_int_final_wide %>%
+  pivot_longer(cols = c('Weak', 'Suboptimal', 'Near-optimal', 'Optimal', 'Above-optimal'), 
+               names_to = 'exp_level', values_to = 'mean_sel_coeff')
+
+mut_counts_tet_int <- table(mutations_tet_int_final_new$bins_tet_int) / 5
+mut_counts_tet_int <- as.data.frame(t(mut_counts_tet_int))
+
+
+# Draw the figure for the tetramerization interface
+p_figs22B_tet_int <-
+  mutations_tet_int_final_new %>%
+  filter(Position != 21) %>% # Position 21 is mutated in the PDB structure
   ggplot(aes(x = bins_tet_int, y = mean_sel_coeff, fill = exp_level, colour = exp_level)) + 
   geom_boxplot(alpha = 0.4) +
   labs(y = expression(bolditalic('s')),
        x = expression(paste(bold('\u0394\u0394'), bolditalic('G'), 
-                            bold(' tet. interface [kcal / mol]')))) +
+                            bold(' tet. interface [kcal/mol]')))) +
   scale_fill_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'),
-                    name = 'Expression level') +
+                    name = 'Promoter activity') +
   scale_colour_manual(values = c('#fed976', '#fd8d3c', '#bd0026', '#80001a', 'black'),
-                      name = 'Expression level') +
+                      name = 'Promoter activity') +
   theme(axis.text.y = element_text(size = 22),
         axis.text.x = element_text(size = 22),
         axis.title = element_text(size = 24, face = 'bold'), 
@@ -3336,7 +3735,10 @@ p_figs22B_tet_int <- ddg_sel_coeff_data %>%
         legend.title = element_text(size = 20), 
         legend.text = element_text(size = 18)
   ) +
-  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0), limits = c(-1, 0.2))
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0), limits = c(-1, 0.2)) +
+  geom_text(inherit.aes = F, data = mut_counts_tet_int,
+            aes(x = Var2, label = str_c('n = ', Freq, sep = '')),
+            y = -0.85, size = 7)
 p_figs22B_tet_int
 
 ## Put the panels together
@@ -3352,751 +3754,10 @@ p_figs22b_panels <- plot_grid(p_figs22B_stab + theme(legend.position = 'none'),
 p_figs22b <- plot_grid(legend_figs22b, p_figs22b_panels, nrow = 2, rel_heights = c(0.2, 1))
 
 p_figs22 <- plot_grid(p_figs22a, p_figs22b, nrow = 2, labels = c('A', 'B'), 
-                    label_size = 20, label_fontface = 'bold')
+                    label_size = 40, label_fontface = 'bold')
 p_figs22
-ggsave(p_figs22, device = cairo_pdf, width = 24, height = 14, dpi = 300, 
+ggsave(p_figs22, device = cairo_pdf, width = 27, height = 14, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS22_noTMP_stab.pdf')
-ggsave(p_figs22, device = 'png', width = 24, height = 14, dpi = 300, 
+
+ggsave(p_figs22, device = 'png', width = 27, height = 14, dpi = 300, 
        filename = 'Figures/Supplementary_figures/FigS22_noTMP_stab.png')
-
-#### Fig. S23: Similar to figure 3 but with the data without TMP ####
-
-data_fig_4_notmp <- all_data_complete %>% ungroup() %>%
-  filter(TMP == 0, Timepoint == 10) %>%
-  select(Position, WT_Residue, Residue, mean_sel_coeff, Arabinose)
-
-entropy <- all_data_complete %>% ungroup() %>%
-  filter(TMP == 0, Arabinose == 0.01) %>%
-  group_by(Position) %>%
-  summarise(Entropy = mean(Entropy))
-
-# Entropy annotation, remove the first value for position 1
-ha1 <- HeatmapAnnotation(Entropy = anno_barplot(entropy$Entropy[2:78],
-                                                bar_width = 1,
-                                                gp = gpar(col = "white", fill = "black"), 
-                                                border = FALSE,
-                                                gap = unit(1, "points"),
-                                                axis=FALSE,
-                                                height = unit(2, "cm")
-),
-show_annotation_name = T,
-annotation_name_gp = gpar(fontface = 'bold', fontsize = 14),
-annotation_name_side = 'left',
-annotation_name_rot = 90,
-annotation_name_offset = c(Entropy = '0.15cm')
-)
-
-### 0.01 arabinose
-# Separate the data for ara 0.2
-data_part_1_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.2)
-
-# Separate the data for ara 0.01
-data_part_2_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.01)
-
-## Subtract the scores
-# Change column names
-colnames(data_part_2_notmp) <- c("Position", "WT_Residue", "Residue", "mean_sel_coeff_2", "Arabinose_2")
-
-# Join
-data_fig_4_final_notmp <- left_join(x = data_part_1_notmp, y = data_part_2_notmp, 
-                              by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 'Residue' = 'Residue')
-) %>% 
-  mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
-
-
-# Need to convert to wide formatted data
-data_fig_4_final_df_notmp <- data_fig_4_final_notmp %>%
-  select(-WT_Residue, -Arabinose, -Arabinose_2, -mean_sel_coeff, -mean_sel_coeff_2) %>%
-  pivot_wider(names_from = Residue, values_from = diffNormScore)
-
-# Need to convert the dataframe to a matrix
-data_fig_4_final_notmp <- as.matrix(data_fig_4_final_df_notmp %>% select(-Position))
-
-rownames(data_fig_4_final_notmp) <- data_fig_4_final_df_notmp$Position
-
-fig_4_bool_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.01) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final_notmp <- as.matrix(fig_4_bool_notmp %>% select(-Position))
-
-rownames(fig_4_bool_final_notmp) <- fig_4_bool_notmp$Position
-
-# Need to reorder the columns in the matrices
-data_fig_4_final_notmp <- data_fig_4_final_notmp[1:nrow(data_fig_4_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final_notmp <- fig_4_bool_final_notmp[1:nrow(fig_4_bool_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-
-column_labels = c('', '', '', '5', 
-                  '', '', '', '', '10', 
-                  '', '', '', '', '15',
-                  '', '', '', '', '20', 
-                  '', '', '', '', '25', 
-                  '', '', '', '', '30', 
-                  '', '', '', '', '35', 
-                  '', '', '', '', '40', 
-                  '', '', '', '', '45', 
-                  '', '', '', '', '50', 
-                  '', '', '', '', '55', 
-                  '', '', '', '', '60', 
-                  '', '', '', '', '65', 
-                  '', '', '', '', '70', 
-                  '', '', '', '', '75', 
-                  '', '', ''
-)
-
-p_figs23_ara0.01 <- Heatmap(
-  t(data_fig_4_final_notmp), cluster_columns = F, cluster_rows = F, 
-  col = colorRamp2(breaks = seq(-8, 8, length.out = 7) / 100, 
-                   colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
-  show_column_names = T, row_names_side = 'left',
-  width=unit(31, 'cm'), height = unit(11.5, 'cm'),
-  border = T,
-  show_heatmap_legend = F, 
-  row_title = "Residue",
-  row_title_gp = gpar(fontsize=24, fontface = 'bold'),
-  row_names_rot = 90, 
-  row_names_centered = T,
-  row_names_gp = gpar(fontsize=18,fontface='bold'),
-  column_names_gp = gpar(fontsize=18,fontface='bold'),
-  top_annotation = ha1,
-  cell_fun = function(j, i, x, y, w, h, col) { # add text to each grid
-    if (fig_4_bool_final_notmp[j,i]){
-      grid.points(x, y, pch = 19, size = unit(0.75, 'char'))
-    }      
-  },
-  heatmap_legend_param = list(
-    at = c(-8, -4, 0, 4, 8) / 100,
-    title = "\u0394s", 
-    title_gp = gpar(fontsize = 16),
-    legend_height = unit(3.5, "cm"),
-    legend_width = unit(2, "cm"),
-    border='black',
-    lwd=1.7,
-    labels_gp = gpar(fontsize = 14),
-    title_position = "leftcenter-rot"
-  ), 
-  column_labels = column_labels
-)
-p_figs23_ara0.01
-
-### 0.025 arabinose
-# Separate the data for ara 0.2
-data_part_1_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.2)
-
-# Separate the data for ara 0.025
-data_part_2_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.025)
-
-## Subtract the scores
-# Change column names
-colnames(data_part_2_notmp) <- c("Position", "WT_Residue", "Residue", "mean_sel_coeff_2", "Arabinose_2")
-
-# Join
-data_fig_4_final_notmp <- left_join(x = data_part_1_notmp, y = data_part_2_notmp, 
-                              by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 'Residue' = 'Residue')
-) %>% 
-  mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
-
-# Need to convert to wide formatted data
-data_fig_4_final_df_notmp <- data_fig_4_final_notmp %>%
-  select(-WT_Residue, -Arabinose, -Arabinose_2, -mean_sel_coeff, -mean_sel_coeff_2) %>%
-  pivot_wider(names_from = Residue, values_from = diffNormScore)
-
-# Need to convert the dataframe to a matrix
-data_fig_4_final_notmp <- as.matrix(data_fig_4_final_df_notmp %>% select(-Position))
-
-rownames(data_fig_4_final_notmp) <- data_fig_4_final_df_notmp$Position
-
-fig_4_bool_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.025) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final_notmp <- as.matrix(fig_4_bool_notmp %>% select(-Position))
-
-rownames(fig_4_bool_final_notmp) <- fig_4_bool_notmp$Position
-
-# Need to reorder the columns in the matrices
-data_fig_4_final_notmp <- data_fig_4_final_notmp[1:nrow(data_fig_4_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final_notmp <- fig_4_bool_final_notmp[1:nrow(fig_4_bool_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-
-p_figs23_ara0.025 <- Heatmap(
-  t(data_fig_4_final_notmp), cluster_columns = F, cluster_rows = F, 
-  col = colorRamp2(breaks = seq(-8, 8, length.out = 7) / 100, 
-                   colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
-  show_column_names = T, row_names_side = 'left',
-  width=unit(31, 'cm'), height = unit(11.5, 'cm'),
-  border = T,
-  show_heatmap_legend = T,
-  row_title = "Residue",
-  row_title_gp = gpar(fontsize=24, fontface = 'bold'),
-  row_names_rot = 90, 
-  row_names_centered = T,
-  row_names_gp = gpar(fontsize=18,fontface='bold'),
-  column_names_gp = gpar(fontsize=18,fontface='bold'),
-  cell_fun = function(j, i, x, y, w, h, col) { # add text to each grid
-    if (fig_4_bool_final_notmp[j,i]){
-      grid.points(x, y, pch = 19, size = unit(0.75, 'char'))
-    }      
-  },
-  heatmap_legend_param = list(
-    at = c(-8, -4, 0, 4, 8) / 100,
-    title = expression(paste(bold('\u0394'), bolditalic('s'), sep = '')),
-    title_gp = gpar(fontsize = 24, fontface = 'bold'),
-    legend_height = unit(3.5, "cm"),
-    legend_width = unit(2, "cm"),
-    border='black',
-    lwd=1.7,
-    labels_gp = gpar(fontsize = 20),
-    title_position = "leftcenter-rot"
-  ), 
-  column_labels = column_labels
-)
-p_figs23_ara0.025
-
-### 0.05 arabinose
-# Separate the data for ara 0.2
-data_part_1_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.2)
-
-# Separate the data for ara 0.05
-data_part_2_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.05)
-
-## Subtract the scores
-# Change column names
-colnames(data_part_2_notmp) <- c("Position", "WT_Residue", "Residue", "mean_sel_coeff_2", "Arabinose_2")
-
-# Join
-data_fig_4_final_notmp <- left_join(x = data_part_1_notmp, y = data_part_2_notmp, 
-                              by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 'Residue' = 'Residue')
-) %>% 
-  mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
-
-# Need to convert to wide formatted data
-data_fig_4_final_df_notmp <- data_fig_4_final_notmp %>%
-  select(-WT_Residue, -Arabinose, -Arabinose_2, -mean_sel_coeff, -mean_sel_coeff_2) %>%
-  pivot_wider(names_from = Residue, values_from = diffNormScore)
-
-# Need to convert the dataframe to a matrix
-data_fig_4_final_notmp <- as.matrix(data_fig_4_final_df_notmp %>% select(-Position))
-
-rownames(data_fig_4_final_notmp) <- data_fig_4_final_df_notmp$Position
-
-fig_4_bool_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.05) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final_notmp <- as.matrix(fig_4_bool_notmp %>% select(-Position))
-
-rownames(fig_4_bool_final_notmp) <- fig_4_bool_notmp$Position
-
-# Need to reorder the columns in the matrices
-data_fig_4_final_notmp <- data_fig_4_final_notmp[1:nrow(data_fig_4_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final_notmp <- fig_4_bool_final_notmp[1:nrow(fig_4_bool_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-
-p_figs23_ara0.05 <- Heatmap(
-  t(data_fig_4_final_notmp), cluster_columns = F, cluster_rows = F, 
-  col = colorRamp2(breaks = seq(-8, 8, length.out = 7) / 100,
-                   colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
-  show_column_names = T, row_names_side = 'left',
-  show_heatmap_legend = F,
-  width=unit(31, 'cm'), height = unit(11.5, 'cm'),
-  border = T,
-  row_title = "Residue",
-  row_title_gp = gpar(fontsize=24, fontface = 'bold'),
-  row_names_rot = 90, 
-  row_names_centered = T,
-  row_names_gp = gpar(fontsize=18,fontface='bold'),
-  column_names_gp = gpar(fontsize=18,fontface='bold'),
-  cell_fun = function(j, i, x, y, w, h, col) { # add text to each grid
-    if (fig_4_bool_final_notmp[j,i]){
-      grid.points(x, y, pch = 19, size = unit(0.75, 'char'))
-    }      
-  },
-  heatmap_legend_param = list(
-    at = c(-8, -4, 0, 4, 8) / 100,
-    title = "\u0394s", 
-    title_gp = gpar(fontsize = 16),
-    legend_height = unit(3.5, "cm"),
-    legend_width = unit(2, "cm"),
-    border='black',
-    lwd=1.7,
-    labels_gp = gpar(fontsize = 14),
-    title_position = "leftcenter-rot"
-  ), 
-  column_labels = column_labels
-)
-p_figs23_ara0.05
-
-### 0.4% arabinose
-# Separate the data for ara 0.2
-data_part_1_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.2)
-
-# Separate the data for ara 0.4
-data_part_2_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.4)
-
-## Subtract the scores
-# Change column names
-colnames(data_part_2_notmp) <- c("Position", "WT_Residue", "Residue", "mean_sel_coeff_2", "Arabinose_2")
-
-# Join
-data_fig_4_final_notmp <- left_join(x = data_part_1_notmp, y = data_part_2_notmp, 
-                                    by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 'Residue' = 'Residue')
-) %>% 
-  mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
-
-# Need to convert to wide formatted data
-data_fig_4_final_df_notmp <- data_fig_4_final_notmp %>%
-  select(-WT_Residue, -Arabinose, -Arabinose_2, -mean_sel_coeff, -mean_sel_coeff_2) %>%
-  pivot_wider(names_from = Residue, values_from = diffNormScore)
-
-# Need to convert the dataframe to a matrix
-data_fig_4_final_notmp <- as.matrix(data_fig_4_final_df_notmp %>% select(-Position))
-
-rownames(data_fig_4_final_notmp) <- data_fig_4_final_df_notmp$Position
-
-fig_4_bool_notmp <- data_fig_4_notmp %>%
-  filter(Arabinose == 0.4) %>%
-  mutate(WT_check = (WT_Residue == Residue)) %>%
-  select(-WT_Residue, -Arabinose, -mean_sel_coeff) %>%
-  pivot_wider(names_from = Residue, values_from = WT_check)
-
-fig_4_bool_final_notmp <- as.matrix(fig_4_bool_notmp %>% select(-Position))
-
-rownames(fig_4_bool_final_notmp) <- fig_4_bool_notmp$Position
-
-# Need to reorder the columns in the matrices
-data_fig_4_final_notmp <- data_fig_4_final_notmp[1:nrow(data_fig_4_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-fig_4_bool_final_notmp <- fig_4_bool_final_notmp[1:nrow(fig_4_bool_final_notmp), c(1,7,2,19,11,9,12,3,14,20,6,21,17,18,13,15,8,10,16,4,5)]
-
-# Prepare the bottom annotation
-data_interfaces_final_notmp <- read_delim('Data/data_annotation_2.txt', delim = '\t')
-
-ha2 <- HeatmapAnnotation(
-  `Dimerization interface` = data_interfaces_final$`A,C`,
-  `Tetramerization interface` = data_interfaces_final$`A,D`,
-  `DHF binding` = data_interfaces_final$DHF,
-  `NADPH binding` = data_interfaces_final$NADPH,
-  `Catalytic residues` = data_interfaces_final$Cat_residues,
-  `Disordered region` = data_interfaces_final$Disordered_region,
-  `Buried residues` = data_interfaces_final$Buried,
-  show_annotation_name = T,
-  annotation_name_gp = gpar(fontface = 'bold', fontsize = 24),
-  simple_anno_size = unit(0.75, 'cm'),
-  annotation_name_side = 'left',
-  show_legend = FALSE,
-  col = list(
-    `Dimerization interface` = colorRamp2(c(0, 1), c("white", "#009E73")), 
-    `Tetramerization interface` = colorRamp2(c(0, 1), c("white", "#0072B2")),
-    `DHF binding` = colorRamp2(c(0, 1), c("white", "#E69F00")),
-    `NADPH binding` = colorRamp2(c(0, 1), c("white", "#D55E00")),
-    `Catalytic residues` = colorRamp2(c(0, 1), c("white", "#56B4E9")),
-    `Disordered region` = colorRamp2(c(0, 1), c("white", "#CC79A7")), 
-    `Buried residues` = colorRamp2(c(0, 1), c("white", "#9933ff"))
-  ),
-  gp = gpar(col = "black")
-)
-
-p_figs23_ara0.4 <- Heatmap(
-  t(data_fig_4_final_notmp), cluster_columns = F, cluster_rows = F, 
-  col = colorRamp2(breaks = seq(-8, 8, length.out = 7) / 100,
-    colors = rev(brewer.pal(n = 7, name = 'BrBG'))), 
-  show_column_names = T, row_names_side = 'left',
-  show_heatmap_legend = F,
-  width=unit(31, 'cm'), height = unit(11.5, 'cm'),
-  border = T,
-  row_title = "Residue",
-  row_title_gp = gpar(fontsize=24, fontface = 'bold'),
-  row_names_rot = 90, 
-  row_names_centered = T,
-  row_names_gp = gpar(fontsize=18,fontface='bold'),
-  column_names_gp = gpar(fontsize=18,fontface='bold'),
-  bottom_annotation = ha2,
-  cell_fun = function(j, i, x, y, w, h, col) { # add text to each grid
-    if (fig_4_bool_final_notmp[j,i]){
-      grid.points(x, y, pch = 19, size = unit(0.75, 'char'))
-      
-    }      
-  },
-  heatmap_legend_param = list(
-    at = c(-8, -4, 0, 4, 8) / 100,
-    title = "\u0394s", 
-    title_gp = gpar(fontsize = 16),
-    legend_height = unit(3.5, "cm"),
-    legend_width = unit(2, "cm"),
-    border='black',
-    lwd=1.7,
-    labels_gp = gpar(fontsize = 14),
-    title_position = "leftcenter-rot"
-  ), 
-  column_labels = column_labels
-)
-p_figs23_ara0.4
-
-## Put the three figures together
-ht_list = p_figs23_ara0.01 %v% p_figs23_ara0.025 %v% p_figs23_ara0.05 %v% p_figs23_ara0.4
-p_figs23_heatmaps <- grid.grabExpr(
-  draw(ht_list,
-       row_title_gp = gpar(fontsize=20, fontface = 'bold'),
-       ht_gap = unit(1, "cm"))
-)
-
-## Arabinose 0.01
-text_fig_ara0.01 <- ggplot() + 
-  draw_label(
-    expression(atop(paste(bold('\u0394'), bolditalic(s[weak]), sep = ''),
-                    paste(bold('('), 
-                          bolditalic(s[weak] - s[opt]), bold(')'), sep = ''))),
-    x = 0.7, y = 0.3,
-    fontface = 'bold', size = 35, angle = 90, colour = '#fed976') +
-  theme(axis.line = element_blank())
-text_fig_ara0.01
-
-# Arabinose 0.025
-text_fig_ara0.025 <- ggplot() + draw_label(
-  expression(atop(paste(bold('\u0394'), bolditalic(s[subopt]), sep = ''),
-                  paste(bold('('), 
-                        bolditalic(s[subopt] - s[opt]), bold(')'), sep = ''))),
-  x = 0.7, y = 0.4,
-  fontface = 'bold', size = 35, angle = 90, colour = '#fd8d3c') +
-  theme(axis.line = element_blank())
-text_fig_ara0.025
-
-# Arabinose 0.05
-text_fig_ara0.05 <- ggplot() + draw_label(
-  expression(atop(paste(bold('\u0394'), bolditalic(s[near-opt]), sep = ''),
-                  paste(bold('('), 
-                        bolditalic(s[near-opt] - s[opt]), bold(')'), sep = ''))),
-  x = 0.7, y = 0.4,
-  fontface = 'bold', size = 35, angle = 90, colour = '#bd0026') +
-  theme(axis.line = element_blank())
-text_fig_ara0.05
-
-# Arabinose 0.4
-text_fig_ara0.4 <- ggplot() + draw_label(
-  expression(atop(paste(bold('\u0394'), bolditalic(s[over]), sep = ''),
-                  paste(bold('('), 
-                        bolditalic(s[over] - s[opt]), bold(')'), sep = ''))),
-  x = 0.7, y = 0.35,
-  fontface = 'bold', size = 35, angle = 90, colour = 'black') +
-  theme(axis.line = element_blank())
-text_fig_ara0.4
-
-#### Start figure S23B ####
-
-#### Check the distribution of delta(DMS scores) for critical sites ####
-
-data_fig_3 <- all_data_complete %>% ungroup() %>%
-  filter(TMP == 0, Timepoint == 10) %>%
-  select(Position, WT_Residue, Residue, mean_sel_coeff, Arabinose, Secondary_structure, rSASA)
-
-# Separate the data for ara 0.2
-data_part_1 <- data_fig_3 %>%
-  filter(Arabinose == 0.2)
-
-## Separate the data for ara 0.4
-data_part_2 <- data_fig_3 %>%
- filter(Arabinose == 0.4)
-
-## Subtract the scores
-# Change column names
-colnames(data_part_2) <- c("Position", "WT_Residue", "Residue", "mean_sel_coeff_2",
-                           "Arabinose_2", "Secondary_structure", "rSASA")
-
-data_fig_3_final_new <- left_join(x = data_part_1, y = data_part_2, 
-                                  by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue',
-                                         'Residue' = 'Residue', 'rSASA' = 'rSASA',
-                                         'Secondary_structure' = 'Secondary_structure')
-) %>% 
-  mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
-
-
-data_fig_3_final_new <- left_join(x = data_part_1, y = data_part_2, 
-                                  by = c('Position' = 'Position', 'WT_Residue' = 'WT_Residue', 'Residue' = 'Residue', 
-                                         'rSASA' = 'rSASA', 'Secondary_structure' = 'Secondary_structure')
-) %>% 
-  mutate(diffNormScore = mean_sel_coeff_2 - mean_sel_coeff)
-
-# Merge the dataframes
-critical_sites_deltaDMS <- left_join(x = data_fig_3_final_new, y = data_interfaces_final, 
-                                     by = c('Position' = 'Position'))
-
-# Pivot to a longer format
-critical_sites_deltaDMS %<>% rowwise() %>% mutate(
-  `Only NADPH` = ifelse(and(NADPH == 1, 
-                            sum(`A,C`, `A,D`, DHF, NADPH, Cat_residues, Buried, Disordered_region) == 1), 1, 0), 
-  Unannotated = ifelse(sum(`A,C`, `A,D`, DHF, NADPH, Cat_residues, Buried, Disordered_region) == 0, 1, 0)
-) %>%
-  pivot_longer(cols = c('A,C', 'A,D', 'DHF', 'NADPH', 'Cat_residues', 'Buried',
-                        'Only NADPH', 'Disordered_region','Unannotated'), 
-               names_to = 'Site', values_to = 'Site_check') %>%
-  filter(Site_check == 1) %>% 
-  mutate(Site = ifelse(Site == 'A,C', 'Dimerization interface' , 
-                       ifelse(Site == 'A,D', 'Tetramerization interface', 
-                              ifelse(Site == 'Cat_residues', 'Catalytic residues', 
-                                     ifelse(Site == 'Disordered_region', 'Disordered region',
-                                            ifelse(Site == 'Buried', 'Buried residues', 
-                                                   ifelse(Site == 'DHF', 'DHF binding', 
-                                                          ifelse(Site == 'NADPH', 'NADPH binding',
-                                                                 Site))))))))
-                                                   
-
-residues_site <- critical_sites_deltaDMS %>% select(Position, Site) %>%
-  group_by(Site) %>%
-  summarise(Position = toString(unique(Position)))
-
-# Color for a gradient background
-g <- rasterGrob(brewer.pal(n = 7, name = 'BrBG'), width=unit(1,"npc"), height = unit(1,"npc"), 
-                interpolate = TRUE)
-
-p_figs23b <- critical_sites_deltaDMS %>% rowwise() %>%
-  mutate(mut_id = str_c(WT_Residue, Position, Residue, sep = '')) %>%
-  filter(Site != 'Only NADPH') %>%
-  mutate(Site = factor(Site, levels = c('Disordered region', 'Catalytic residues',
-                                        'DHF binding', 'NADPH binding',
-                                        'Buried residues',
-                                         'Tetramerization interface', 'Dimerization interface','Unannotated')
-  )
-  ) %>%
-  ggplot(aes(x = Site, y = diffNormScore, colour = Site, fill = Site)) +
-  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
-  scale_colour_manual(values = c('#CC79A7', '#56B4E9', '#E69F00', '#D55E00',
-                                 '#9933ff',
-                                 '#0072B2', '#009E73', 
-                                '#000000')) +
-  scale_fill_manual(values = c('#CC79A7', '#56B4E9', '#E69F00', '#D55E00',
-                               '#9933ff',
-                               '#0072B2', '#009E73', 
-                               '#000000')) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.3) +
-  geom_jitter(width = 0.2, alpha = 0.8) + 
-  geom_hline(yintercept = 0, linetype = 'dashed') +
-  theme(legend.position = 'none', 
-        panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-        panel.grid.minor = element_blank(), 
-        axis.title.x = element_text(face = 'bold', size = 20),
-        axis.title.y = element_text(face = 'bold', size = 28),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1), 
-        axis.text.y = element_text(size = 18), 
-        plot.margin = margin(t = 1, r = 5, b = 0, l = 9, 'cm')) +
-  xlab('') +
-  labs(y = expression(paste(bold('\u0394'), bolditalic(s[over]),
-                            bold(' ('), bolditalic(s[over] - s[opt]), bold(')'), 
-                            sep = ''))) +
-  ylim(-0.08, 0.08) +  
-  annotate('text', 
-           x = 3, y = 0.04,
-           label = expression(italic(s[over] > s[opt])),
-           parse = T, size = 8) +
-  annotate('text', 
-           x = 3, y = -0.04,
-           label = expression(italic(s[over] < s[opt])),
-           parse = T, size = 8)
-p_figs23b
-
-#### End figure s23B ####
-
-### Save the text labels and the panels separately
-p_figs23_text <- plot_grid(text_fig_ara0.01, text_fig_ara0.025, text_fig_ara0.05, text_fig_ara0.4,
-                           nrow = 4, rel_heights = c(1.1, 1, 1.1, 1))
-
-p_figs23 <- plot_grid(p_figs23_heatmaps, 
-                      p_figs23b + theme(plot.margin = margin(t = 1, r = 10, b = 0, l = 14, 'cm')),
-                      nrow = 2, rel_heights = c(4, 1.3), 
-                      labels = c('A', 'B'), label_size = 20, label_fontface = 'bold')
-
-p_figs23
-
-ggsave(p_figs23, width = 23, height = 30, dpi = 300, device = cairo_pdf, 
-       filename = 'Figures/Supplemenary_figures/FigS23_supp_allDiff_noSecStruc_buried_panels_over_nolabels.pdf')
-ggsave(p_figs23_text, width = 23, height = 31, dpi = 300, device = cairo_pdf, 
-       filename = 'Figures/Supplementary_figures/FigS23_supp_allDiff_noSecStruc_buried_text.pdf')
-
-#### Figure S24: Growth curves for WT and E2R mutant ####
-
-# Load the growth curves with TMP
-plate.ind <- 'Data/Growth_curves/Index_growth_curves_11_05_2022.xlsx'
-file.od <- 'Data/Growth_curves/Growth_curves_11_05_2022.xlsx'
-
-## Define function to read plate data
-# function to process plates ----------------------------------------------
-read.my.gc <- function(file, plate.index){
-  pl <- read.xlsx(file,sheetIndex = 1, rowIndex = 3:62, stringsAsfactors = FALSE,
-                  header = F)
-  ind <- read.xlsx(plate.index, sheetIndex = 1, rowIndex = 1:64, header = T) 
-  
-  time <- seq(0,0.30*(ncol(pl)-2), 0.30)
-  
-  colnames(pl)[1] <- "Well"
-  colnames(pl)[2:ncol(pl)] <- time
-  pl %<>% select(1:(ncol(pl)-2)) 
-  
-  data.pl <- gather(pl, key = "time", value = "OD",2:ncol(pl), convert = F)
-  data.pl$time <- as.numeric(data.pl$time)
-  data.pl$OD <- as.numeric(data.pl$OD)
-  data.pl %<>% left_join(ind, by = "Well")
-  
-  # Subtract the blank for this experiment and multiply by 5 to make it OD / mL
-  # (experiment was carried out in 0.2 mL)
-  data.pl %<>% mutate(OD = (OD - 0.085) * 5)
-  
-  d <-  select(data.pl, 1:3)
-  d %<>% spread(key = "Well", value = "OD", convert = F) 
-  colnames(d)[1] <- "time"
-  
-  ## Use Growthcurver
-  gc_out <- SummarizeGrowthByPlate(d, t_trim =13.5)
-  colnames(gc_out)[1] <- "Well"
-  data.pl %<>% left_join(gc_out, by = "Well")
-}
-
-data.od1 <- read.my.gc(file.od, plate.ind)
-
-## Load the data without TMP
-plate.ind <- 'Data/Growth_curves/Index_growth_curves_20_05_2022.xlsx'
-file.od <- 'Data/Growth_curves/Growth_curves_20_05_2022.xlsx'
-
-read.my.gc <- function(file, plate.index){
-  pl <- read.xlsx(file,sheetIndex = 1, rowIndex = 3:62, stringsAsfactors = FALSE,
-                  header = F)
-  ind <- read.xlsx(plate.index, sheetIndex = 1, rowIndex = 1:64, header = T) 
-  
-  time <- seq(0,0.30*(ncol(pl)-2), 0.30)
-  
-  colnames(pl)[1] <- "Well"
-  colnames(pl)[2:ncol(pl)] <- time
-  pl %<>% select(1:(ncol(pl)-2)) 
-  
-  data.pl <- gather(pl, key = "time", value = "OD",2:ncol(pl), convert = F)
-  data.pl$time <- as.numeric(data.pl$time)
-  data.pl$OD <- as.numeric(data.pl$OD)
-  data.pl %<>% left_join(ind, by = "Well")
-  
-  # Subtract the blank for this experiment and multiply by 5 to make it OD / mL
-  # (experiment was carried out in 0.2 mL)
-  data.pl %<>% mutate(OD = (OD - 0.089) * 5)
-  
-  d <-  select(data.pl, 1:3)
-  d %<>% spread(key = "Well", value = "OD", convert = F) 
-  colnames(d)[1] <- "time"
-  
-  ## Use Growthcurver
-  gc_out <- SummarizeGrowthByPlate(d, t_trim =13.5)
-  colnames(gc_out)[1] <- "Well"
-  data.pl %<>% left_join(gc_out, by = "Well")
-}
-
-data.od2 <- read.my.gc(file.od, plate.ind)
-
-# Put the data together
-data_figs24 <- bind_rows(data.od1, data.od2)
-
-# Summarise to have only one data point for AUC for each well
-data_figs24_summary <- data_figs24 %>% ungroup() %>% 
-  group_by(Well, Arabinose, TMP, Mutant) %>%
-  summarise(auc = mean(auc_e))
-
-# Summarize to show the average of the three replicates
-data_figs24_sum_curves <- data_figs24 %>% ungroup() %>%
-  group_by(Arabinose, TMP, Mutant, time) %>%
-  summarise(OD = mean(OD))
-
-#### Show the percentage of growth recovery ####
-
-# Pivot the area under the curve to calculate the differences
-data_figs24_wide <- data_figs24_summary %>% ungroup() %>%
-  group_by(Well, Arabinose, Mutant) %>%
-  filter(!(is.na(Mutant))) %>%
-  pivot_wider(names_from = TMP, values_from = auc, names_prefix = 'AUC_TMP_')
-
-# Calculate the difference between the data with and without TMP
-# and then the percentage of growth recovery
-data_figs24_wide %<>% mutate(diff_auc = AUC_TMP_10 - AUC_TMP_0)
-
-# Add a column for the maximum difference (0% arabinose)
-max_diff <- data_figs24_wide %>% filter(Arabinose == 0) %>% ungroup() %>%
-  group_by(Arabinose, Mutant) %>%
-  summarise(max_diff = median(diff_auc))
-
-# Use a join to add the maximum difference
-data_figs24_final <- left_join(x = data_figs24_wide, 
-                               y = max_diff %>% ungroup() %>% select(-Arabinose), 
-                               by = c('Mutant' = 'Mutant'))
-
-data_figs24_final %<>% mutate(pct_recovery = 100 * (1 - (diff_auc / max_diff)))
-
-data_figs24_final_summ <- data_figs24_final %>% ungroup() %>%
-  group_by(Arabinose, Mutant) %>%
-  summarise(mean_recovery = mean(pct_recovery), 
-            sem_recovery = sd(pct_recovery) / sqrt(n()), 
-            num_samples = n())
-
-p_figs24a <- data_figs24_final_summ %>% 
-  ggplot(aes(x = as.factor(Arabinose), y = mean_recovery, colour = Mutant, 
-             ymax = mean_recovery + sem_recovery, 
-             ymin = mean_recovery - sem_recovery)) +
-  geom_point(size = 1.5) +
-  geom_errorbar(width = 0.2) +
-  theme(axis.title = element_text(size = 20, face = 'bold'), 
-        axis.text = element_text(size = 18), 
-        panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-        panel.grid.minor = element_blank(), 
-        legend.position = 'top', 
-        legend.justification = 'center', 
-        legend.title = element_text(size = 20), 
-        legend.text = element_text(size = 18), 
-        strip.text = element_text(size = 20, face = 'bold'), 
-        strip.background = element_rect(fill = 'white')) +
-  xlab('Arabinose (% m/v)') + ylab('Recovered growth (%)')
-p_figs24a
-
-#### Figure S24B: Look at the cost of overexpressing E2R ####
-
-# Need to calculate the median growth recovery at 0.001 arabinose
-med_opt_E2R <- data_figs24_final %>% ungroup() %>%
-  filter(Mutant == 'E2R', Arabinose == 0.001) %>%
-  group_by(Mutant, Arabinose) %>%
-  summarise(med_recovery = median(pct_recovery))
-
-cost_e2r <-data_figs24_final %>% mutate(opt_recovery = med_opt_E2R$med_recovery[1])
-
-cost_e2r %<>% mutate(cost = opt_recovery - pct_recovery)
-
-p_figs24b <- cost_e2r %>% 
-  filter(Mutant == 'E2R', Arabinose > 0) %>%
-  ggplot(aes(x = as.factor(Arabinose), y = cost)) +
-  geom_jitter(size = 3, width = 0.2) +
-  stat_summary(fun = mean, colour = 'red') +
-  stat_summary(fun = mean, geom = 'path',
-               mapping = aes(group = -1), colour = 'red') +
-  theme(axis.title = element_text(size = 20, face = 'bold'), 
-        axis.text = element_text(size = 18), 
-        panel.grid.major = element_line(colour="#8c8c8c", linetype = 'dashed'),
-        panel.grid.minor = element_blank(), 
-        legend.position = 'top', 
-        legend.justification = 'center', 
-        legend.title = element_text(size = 20), 
-        legend.text = element_text(size = 18), 
-        strip.text = element_text(size = 20, face = 'bold'), 
-        strip.background = element_rect(fill = 'white')) +
-  xlab('Arabinose (% m/v)') + ylab('E2R expression cost (% recovered growth)')
-p_figs24b
-
-p_figs24 <- plot_grid(p_figs24a, p_figs24b, nrow = 2, labels = c('A', 'B'), 
-                      label_size = 20, label_fontface = 'bold')
-
-ggsave(p_figs24, device = cairo_pdf, width = 10, height = 15, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS24_WT_E2R_recovery.pdf')
-ggsave(p_figs24, device = 'png', width = 10, height = 15, dpi = 300, 
-       filename = 'Figures/Supplementary_figures/FigS24_WT_E2R_recovery.png')
